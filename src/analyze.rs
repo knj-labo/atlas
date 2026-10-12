@@ -19,7 +19,7 @@ pub fn analyze(source: &str) -> Result<FileFacts, AnalysisError> {
     let allocator = Allocator::default();
     let parsed = Parser::new(&allocator, source, SourceType::astro()).parse_astro();
     if parsed.panicked || !parsed.errors.is_empty() {
-        let mut diagnostics = own_diagnostics(&parsed.errors, DiagnosticPhase::Parser);
+        let mut diagnostics = to_diagnostics(&parsed.errors, DiagnosticPhase::Parser);
         if diagnostics.is_empty() {
             diagnostics.push(Diagnostic {
                 phase: DiagnosticPhase::Parser,
@@ -47,7 +47,7 @@ pub fn analyze(source: &str) -> Result<FileFacts, AnalysisError> {
         .build_astro(&parsed.root, source, comments);
     if !built.errors.is_empty() {
         return Err(AnalysisError {
-            diagnostics: own_diagnostics(&built.errors, DiagnosticPhase::Semantic),
+            diagnostics: to_diagnostics(&built.errors, DiagnosticPhase::Semantic),
             parser_panicked: false,
         });
     }
@@ -88,7 +88,7 @@ pub fn analyze(source: &str) -> Result<FileFacts, AnalysisError> {
     Ok(collector.facts)
 }
 
-fn own_diagnostics(errors: &[OxcDiagnostic], phase: DiagnosticPhase) -> Vec<Diagnostic> {
+fn to_diagnostics(errors: &[OxcDiagnostic], phase: DiagnosticPhase) -> Vec<Diagnostic> {
     errors
         .iter()
         .map(|error| Diagnostic {
