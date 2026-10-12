@@ -1,0 +1,29 @@
+---
+import Counter from './Counter.astro';
+const serverOnly = 1;
+const components = [Counter];
+---
+<Counter />
+{firstOnly}
+{secondOnly}
+{components.map((TemplateOnly) => <section>
+  <TemplateOnly />
+  <script>
+    const shared = 1;
+    const firstOnly = shared;
+    shared;
+    Counter;
+    serverOnly;
+    TemplateOnly;
+    secondOnly;
+    function nested() { return [shared, Counter, TemplateOnly, secondOnly]; }
+    nested();
+  </script>
+</section>)}
+<script>
+  const shared = 2;
+  const secondOnly = shared;
+  shared;
+  firstOnly;
+  Counter;
+</script>

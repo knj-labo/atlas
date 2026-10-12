@@ -1,0 +1,2 @@
+tests/fixtures/*.astro text eol=lf
+tests/fixtures/positions.astro -text
