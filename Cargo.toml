@@ -5,10 +5,11 @@ edition = "2024"
 rust-version = "1.91.1"
 publish = false
 
-[dev-dependencies]
+[dependencies]
 oxc_allocator = { git = "https://github.com/withastro/oxc", rev = "8bb526fc0c20beb4649b223d3ac39851505caa5a" }
 oxc_ast = { git = "https://github.com/withastro/oxc", rev = "8bb526fc0c20beb4649b223d3ac39851505caa5a" }
 oxc_ast_visit = { git = "https://github.com/withastro/oxc", rev = "8bb526fc0c20beb4649b223d3ac39851505caa5a" }
+oxc_diagnostics = { git = "https://github.com/withastro/oxc", rev = "8bb526fc0c20beb4649b223d3ac39851505caa5a" }
 oxc_parser = { git = "https://github.com/withastro/oxc", rev = "8bb526fc0c20beb4649b223d3ac39851505caa5a", features = ["regular_expression"] }
 oxc_semantic = { git = "https://github.com/withastro/oxc", rev = "8bb526fc0c20beb4649b223d3ac39851505caa5a", features = ["astro"] }
 oxc_span = { git = "https://github.com/withastro/oxc", rev = "8bb526fc0c20beb4649b223d3ac39851505caa5a" }
