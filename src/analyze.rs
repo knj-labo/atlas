@@ -195,38 +195,6 @@ impl FactCollector<'_, '_, '_> {
             resolution,
         }
     }
-
-    fn directive(&self, attribute: &ast::JSXAttribute<'_>) -> Option<Directive> {
-        let name = match &attribute.name {
-            ast::JSXAttributeName::Identifier(name) => name.name.to_string(),
-            ast::JSXAttributeName::NamespacedName(name) => {
-                format!("{}:{}", name.namespace.name, name.name.name)
-            }
-        };
-        if !name.contains(':') {
-            return None;
-        }
-        let value = attribute.value.as_ref().map(|value| {
-            let kind = match value {
-                ast::JSXAttributeValue::StringLiteral(_) => DirectiveValueKind::String,
-                ast::JSXAttributeValue::ExpressionContainer(_) => DirectiveValueKind::Expression,
-                ast::JSXAttributeValue::Element(_) => DirectiveValueKind::Element,
-                ast::JSXAttributeValue::Fragment(_) => DirectiveValueKind::Fragment,
-            };
-            let span = value.span();
-            DirectiveValue {
-                raw: span.source_text(self.source).to_owned(),
-                span: range(span),
-                kind,
-            }
-        });
-        Some(Directive {
-            name,
-            span: range(attribute.span),
-            name_span: range(attribute.name.span()),
-            value,
-        })
-    }
 }
 
 impl<'a> Visit<'a> for FactCollector<'_, '_, 'a> {
@@ -249,7 +217,12 @@ impl<'a> Visit<'a> for FactCollector<'_, '_, 'a> {
             AstKind::JSXElement(element)
                 if !self.in_frontmatter && self.script_stack.is_empty() =>
             {
-                if let Some(reference) = component_root(&element.opening_element.name) {
+                let root = match &element.opening_element.name {
+                    ast::JSXElementName::IdentifierReference(reference) => Some(&**reference),
+                    ast::JSXElementName::MemberExpression(member) => member_root(&member.object),
+                    _ => None,
+                };
+                if let Some(reference) = root {
                     self.facts.components.push(ComponentUse {
                         name: element
                             .opening_element
@@ -270,7 +243,45 @@ impl<'a> Visit<'a> for FactCollector<'_, '_, 'a> {
                             .iter()
                             .filter_map(|attribute| match attribute {
                                 ast::JSXAttributeItem::Attribute(attribute) => {
-                                    self.directive(attribute)
+                                    let name = match &attribute.name {
+                                        ast::JSXAttributeName::Identifier(name) => {
+                                            name.name.to_string()
+                                        }
+                                        ast::JSXAttributeName::NamespacedName(name) => {
+                                            format!("{}:{}", name.namespace.name, name.name.name)
+                                        }
+                                    };
+                                    if !name.contains(':') {
+                                        return None;
+                                    }
+                                    let value = attribute.value.as_ref().map(|value| {
+                                        let kind = match value {
+                                            ast::JSXAttributeValue::StringLiteral(_) => {
+                                                DirectiveValueKind::String
+                                            }
+                                            ast::JSXAttributeValue::ExpressionContainer(_) => {
+                                                DirectiveValueKind::Expression
+                                            }
+                                            ast::JSXAttributeValue::Element(_) => {
+                                                DirectiveValueKind::Element
+                                            }
+                                            ast::JSXAttributeValue::Fragment(_) => {
+                                                DirectiveValueKind::Fragment
+                                            }
+                                        };
+                                        let span = value.span();
+                                        DirectiveValue {
+                                            raw: span.source_text(self.source).to_owned(),
+                                            span: range(span),
+                                            kind,
+                                        }
+                                    });
+                                    Some(Directive {
+                                        name,
+                                        span: range(attribute.span),
+                                        name_span: range(attribute.name.span()),
+                                        value,
+                                    })
                                 }
                                 ast::JSXAttributeItem::SpreadAttribute(_) => None,
                             })
@@ -290,16 +301,6 @@ impl<'a> Visit<'a> for FactCollector<'_, '_, 'a> {
             }
             _ => {}
         }
-    }
-}
-
-fn component_root<'a, 'b>(
-    name: &'b ast::JSXElementName<'a>,
-) -> Option<&'b ast::IdentifierReference<'a>> {
-    match name {
-        ast::JSXElementName::IdentifierReference(reference) => Some(reference),
-        ast::JSXElementName::MemberExpression(member) => member_root(&member.object),
-        _ => None,
     }
 }
 
