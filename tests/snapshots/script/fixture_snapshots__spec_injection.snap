@@ -1,0 +1,32 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [],
+  "declarations": [
+    {"id":"d0","import":null,"injection":null,"kind":"Variable","name":"title","scope":"s0","span":[10,15]},
+    {"id":"d1","import":null,"injection":{"key_span":[51,58],"references":["r0"],"value":{"raw":"title","span":[59,64]}},"kind":"Injected","name":"message","scope":"s1","span":[51,58]},
+    {"id":"d2","import":null,"injection":{"key_span":[65,75],"references":["r1"],"value":{"raw":"title","span":[76,81]}},"kind":"Injected","name":"bgColor","scope":"s1","span":[65,75]}
+  ],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[{"literal":null,"name":"define:vars","name_span":[37,48],"span":[37,83],"spread":false,"value":{"kind":"Expression","raw":"{{message:title,\"bg-color\":title}}","span":[49,83]}}],"closing_span":[100,109],"directives":[{"name":"define:vars","name_span":[37,48],"span":[37,83],"status":"Dynamic","value":{"kind":"Expression","raw":"{{message:title,\"bg-color\":title}}","span":[49,83]}}],"id":"e0","kind":"Script","name":"script","name_span":[30,36],"opening_span":[29,84],"parent":null,"reference":null,"slot":null,"span":[29,109],"text":[]}
+  ],
+  "imports": [],
+  "references": [
+    {"id":"r0","kind":"Value","name":"title","resolution":{"Resolved":"d0"},"scope":"s0","span":[59,64]},
+    {"id":"r1","kind":"Value","name":"title","resolution":{"Resolved":"d0"},"scope":"s0","span":[76,81]},
+    {"id":"r2","kind":"Value","name":"message","resolution":{"Resolved":"d1"},"scope":"s1","span":[84,91]},
+    {"id":"r3","kind":"Value","name":"bgColor","resolution":{"Resolved":"d2"},"scope":"s1","span":[92,99]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,109]},
+    {"domain":"InjectedScript","id":"s1","kind":"Root","parent":null,"span":[84,100]}
+  ],
+  "scripts": [
+    {"bundled":false,"content":{"raw":"message;bgColor;","span":[84,100]},"dynamic_injection":false,"element":"e0","injected":["d1","d2"],"language":"JavaScript","mode":"InlineClassic","references":["r2","r3"],"source":null,"span":[29,109]}
+  ],
+  "styles": []
+}}

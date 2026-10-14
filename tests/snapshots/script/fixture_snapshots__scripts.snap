@@ -1,0 +1,68 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [
+    {"closing_name_span":null,"directives":[],"element":"e0","name":"Counter","name_span":[100,107],"reference":"r1","span":[99,110]},
+    {"closing_name_span":null,"directives":[],"element":"e2","name":"TemplateOnly","name_span":[183,195],"reference":"r5","span":[182,198]}
+  ],
+  "declarations": [
+    {"id":"d0","import":{"source":"./Counter.astro","specifier":"Default","type_only":false},"injection":null,"kind":"Import","name":"Counter","scope":"s0","span":[11,18]},
+    {"id":"d1","import":null,"injection":null,"kind":"Variable","name":"serverOnly","scope":"s0","span":[49,59]},
+    {"id":"d2","import":null,"injection":null,"kind":"Variable","name":"components","scope":"s0","span":[71,81]},
+    {"id":"d3","import":null,"injection":null,"kind":"Parameter","name":"TemplateOnly","scope":"s1","span":[153,165]},
+    {"id":"d4","import":null,"injection":null,"kind":"Variable","name":"shared","scope":"s2","span":[220,226]},
+    {"id":"d5","import":null,"injection":null,"kind":"Variable","name":"firstOnly","scope":"s2","span":[242,251]},
+    {"id":"d6","import":null,"injection":null,"kind":"Function","name":"nested","scope":"s2","span":[350,356]},
+    {"id":"d7","import":null,"injection":null,"kind":"Variable","name":"shared","scope":"s4","span":[471,477]},
+    {"id":"d8","import":null,"injection":null,"kind":"Variable","name":"secondOnly","scope":"s4","span":[491,501]}
+  ],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[],"closing_span":null,"directives":[],"id":"e0","kind":"Component","name":"Counter","name_span":[100,107],"opening_span":[99,110],"parent":null,"reference":"r1","slot":null,"span":[99,110],"text":[]},
+    {"attributes":[],"closing_span":[441,451],"directives":[],"id":"e1","kind":"Html","name":"section","name_span":[171,178],"opening_span":[170,179],"parent":null,"reference":null,"slot":null,"span":[170,451],"text":[{"raw":"\n  ","span":[179,182]},{"raw":"\n  ","span":[198,201]}]},
+    {"attributes":[],"closing_span":null,"directives":[],"id":"e2","kind":"Dynamic","name":"TemplateOnly","name_span":[183,195],"opening_span":[182,198],"parent":"e1","reference":"r5","slot":null,"span":[182,198],"text":[]},
+    {"attributes":[],"closing_span":[431,440],"directives":[],"id":"e3","kind":"Script","name":"script","name_span":[202,208],"opening_span":[201,209],"parent":"e1","reference":null,"slot":null,"span":[201,440],"text":[]},
+    {"attributes":[],"closing_span":[546,555],"directives":[],"id":"e4","kind":"Script","name":"script","name_span":[455,461],"opening_span":[454,462],"parent":null,"reference":null,"slot":null,"span":[454,555],"text":[]}
+  ],
+  "imports": [
+    {"bindings":[{"name":"Counter","span":[11,18],"target":{"source":"./Counter.astro","specifier":"Default","type_only":false}}],"source":"./Counter.astro","source_span":[24,41],"span":[4,42]}
+  ],
+  "references": [
+    {"id":"r0","kind":"Value","name":"Counter","resolution":{"Resolved":"d0"},"scope":"s0","span":[85,92]},
+    {"id":"r1","kind":"Value","name":"Counter","resolution":{"Resolved":"d0"},"scope":"s0","span":[100,107]},
+    {"id":"r2","kind":"Value","name":"firstOnly","resolution":"Unresolved","scope":"s0","span":[112,121]},
+    {"id":"r3","kind":"Value","name":"secondOnly","resolution":"Unresolved","scope":"s0","span":[124,134]},
+    {"id":"r4","kind":"Value","name":"components","resolution":{"Resolved":"d2"},"scope":"s0","span":[137,147]},
+    {"id":"r5","kind":"Value","name":"TemplateOnly","resolution":{"Resolved":"d3"},"scope":"s1","span":[183,195]},
+    {"id":"r6","kind":"Value","name":"shared","resolution":{"Resolved":"d4"},"scope":"s2","span":[254,260]},
+    {"id":"r7","kind":"Value","name":"shared","resolution":{"Resolved":"d4"},"scope":"s2","span":[266,272]},
+    {"id":"r8","kind":"Value","name":"Counter","resolution":"Unresolved","scope":"s2","span":[278,285]},
+    {"id":"r9","kind":"Value","name":"serverOnly","resolution":"Unresolved","scope":"s2","span":[291,301]},
+    {"id":"r10","kind":"Value","name":"TemplateOnly","resolution":"Unresolved","scope":"s2","span":[307,319]},
+    {"id":"r11","kind":"Value","name":"secondOnly","resolution":"Unresolved","scope":"s2","span":[325,335]},
+    {"id":"r12","kind":"Value","name":"shared","resolution":{"Resolved":"d4"},"scope":"s3","span":[369,375]},
+    {"id":"r13","kind":"Value","name":"Counter","resolution":"Unresolved","scope":"s3","span":[377,384]},
+    {"id":"r14","kind":"Value","name":"TemplateOnly","resolution":"Unresolved","scope":"s3","span":[386,398]},
+    {"id":"r15","kind":"Value","name":"secondOnly","resolution":"Unresolved","scope":"s3","span":[400,410]},
+    {"id":"r16","kind":"Value","name":"nested","resolution":{"Resolved":"d6"},"scope":"s2","span":[419,425]},
+    {"id":"r17","kind":"Value","name":"shared","resolution":{"Resolved":"d7"},"scope":"s4","span":[504,510]},
+    {"id":"r18","kind":"Value","name":"shared","resolution":{"Resolved":"d7"},"scope":"s4","span":[514,520]},
+    {"id":"r19","kind":"Value","name":"firstOnly","resolution":"Unresolved","scope":"s4","span":[524,533]},
+    {"id":"r20","kind":"Value","name":"Counter","resolution":"Unresolved","scope":"s4","span":[537,544]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,556]},
+    {"domain":"Server","id":"s1","kind":"Function","parent":"s0","span":[152,451]},
+    {"domain":"BrowserModule","id":"s2","kind":"Root","parent":null,"span":[209,431]},
+    {"domain":"BrowserModule","id":"s3","kind":"Function","parent":"s2","span":[341,414]},
+    {"domain":"BrowserModule","id":"s4","kind":"Root","parent":null,"span":[462,546]}
+  ],
+  "scripts": [
+    {"bundled":true,"content":{"raw":"\n    const shared = 1;\n    const firstOnly = shared;\n    shared;\n    Counter;\n    serverOnly;\n    TemplateOnly;\n    secondOnly;\n    function nested() { return [shared, Counter, TemplateOnly, secondOnly]; }\n    nested();\n  ","span":[209,431]},"dynamic_injection":false,"element":"e3","injected":[],"language":"TypeScript","mode":"Processed","references":["r6","r7","r8","r9","r10","r11","r12","r13","r14","r15","r16"],"source":null,"span":[201,440]},
+    {"bundled":true,"content":{"raw":"\n  const shared = 2;\n  const secondOnly = shared;\n  shared;\n  firstOnly;\n  Counter;\n","span":[462,546]},"dynamic_injection":false,"element":"e4","injected":[],"language":"TypeScript","mode":"Processed","references":["r17","r18","r19","r20"],"source":null,"span":[454,555]}
+  ],
+  "styles": []
+}}

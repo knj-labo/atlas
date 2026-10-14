@@ -1,0 +1,22 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [],
+  "declarations": [],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[],"closing_span":[168,176],"directives":[],"id":"e0","kind":"Style","name":"style","name_span":[1,6],"opening_span":[0,7],"parent":null,"reference":null,"slot":null,"span":[0,176],"text":[{"raw":"@keyframes spin{}@keyframes important{}@keyframes \"none\"{}.a{animation-name:spin !important;animation-name:important !IMPORTANT;animation-name:\"none\" !important}","span":[7,168]}]}
+  ],
+  "imports": [],
+  "references": [],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,177]}
+  ],
+  "scripts": [],
+  "styles": [
+    {"content":{"raw":"@keyframes spin{}@keyframes important{}@keyframes \"none\"{}.a{animation-name:spin !important;animation-name:important !IMPORTANT;animation-name:\"none\" !important}","span":[7,168]},"css":{"declarations":[{"id":"decl0","important":true,"name":"animation-name","name_span":[68,82],"rule":"rule3","span":[68,99],"value":{"raw":"spin","span":[83,87]}},{"id":"decl1","important":true,"name":"animation-name","name_span":[99,113],"rule":"rule3","span":[99,135],"value":{"raw":"important","span":[114,123]}},{"id":"decl2","important":true,"name":"animation-name","name_span":[135,149],"rule":"rule3","span":[135,167],"value":{"raw":"\"none\"","span":[150,156]}}],"definitions":[{"conditions":[],"declaration":null,"kind":"Keyframes","name":"spin","span":[18,22]},{"conditions":[],"declaration":null,"kind":"Keyframes","name":"important","span":[35,44]},{"conditions":[],"declaration":null,"kind":"Keyframes","name":"none","span":[57,63]}],"dependencies":[],"references":[{"candidates":[{"definition":0,"style":"style0"}],"fallback":null,"kind":"Animation","name":"spin","runtime_dependent":true,"span":[83,87]},{"candidates":[{"definition":1,"style":"style0"}],"fallback":null,"kind":"Animation","name":"important","runtime_dependent":true,"span":[114,123]},{"candidates":[{"definition":2,"style":"style0"}],"fallback":null,"kind":"Animation","name":"none","runtime_dependent":true,"span":[150,156]}],"rules":[{"conditions":[],"id":"rule0","kind":"Keyframes","parent":null,"prelude":{"raw":"@keyframes spin","span":[7,22]},"selectors":[],"span":[7,24]},{"conditions":[],"id":"rule1","kind":"Keyframes","parent":null,"prelude":{"raw":"@keyframes important","span":[24,44]},"selectors":[],"span":[24,46]},{"conditions":[],"id":"rule2","kind":"Keyframes","parent":null,"prelude":{"raw":"@keyframes \"none\"","span":[46,63]},"selectors":[],"span":[46,65]},{"conditions":[],"id":"rule3","kind":"Style","parent":null,"prelude":{"raw":".a","span":[65,67]},"selectors":[{"classes":[{"name":"a","span":[66,67]}],"global":false,"ids":[],"nesting":false,"raw":".a","span":[65,67]}],"span":[65,168]}]},"dynamic_injection":false,"element":"e0","id":"style0","injected":[],"inline_attribute":false,"language":"css","mode":"Scoped","span":[0,176]}
+  ]
+}}

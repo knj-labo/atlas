@@ -1,0 +1,24 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [],
+  "declarations": [],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[{"literal":null,"name":"type","name_span":[8,12],"span":[8,19],"spread":false,"value":{"kind":"Expression","raw":"{kind}","span":[13,19]}}],"closing_span":[30,39],"directives":[],"id":"e0","kind":"Script","name":"script","name_span":[1,7],"opening_span":[0,20],"parent":null,"reference":null,"slot":null,"span":[0,39],"text":[{"raw":"raw @ data","span":[20,30]}]}
+  ],
+  "imports": [],
+  "references": [
+    {"id":"r0","kind":"Value","name":"kind","resolution":"Unresolved","scope":"s0","span":[14,18]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,39]}
+  ],
+  "scripts": [
+    {"bundled":false,"content":{"raw":"raw @ data","span":[20,30]},"dynamic_injection":false,"element":"e0","injected":[],"language":"Unknown","mode":"Dynamic","references":[],"source":null,"span":[0,39]}
+  ],
+  "styles": []
+}}

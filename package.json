@@ -1,0 +1,11 @@
+{
+  "name": "atlas-spec-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:conformance": "node --test tests/compiler/fixtures.test.mjs && node tests/compiler/conformance.mjs"
+  },
+  "devDependencies": {
+    "@astrojs/compiler-rs": "0.3.0"
+  }
+}

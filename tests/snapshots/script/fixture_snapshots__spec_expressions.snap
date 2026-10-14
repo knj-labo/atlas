@@ -1,0 +1,38 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [],
+  "declarations": [
+    {"id":"d0","import":null,"injection":null,"kind":"Variable","name":"a","scope":"s2","span":[16,17]},
+    {"id":"d1","import":null,"injection":null,"kind":"Variable","name":"b","scope":"s3","span":[55,56]},
+    {"id":"d2","import":null,"injection":null,"kind":"Variable","name":"c","scope":"s4","span":[106,107]}
+  ],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[],"closing_span":[22,31],"directives":[],"id":"e0","kind":"Script","name":"script","name_span":[3,9],"opening_span":[2,10],"parent":null,"reference":null,"slot":null,"span":[2,31],"text":[]},
+    {"attributes":[],"closing_span":[61,70],"directives":[],"id":"e1","kind":"Script","name":"script","name_span":[42,48],"opening_span":[41,49],"parent":null,"reference":null,"slot":null,"span":[41,70],"text":[]},
+    {"attributes":[],"closing_span":[112,121],"directives":[],"id":"e2","kind":"Script","name":"script","name_span":[93,99],"opening_span":[92,100],"parent":null,"reference":null,"slot":null,"span":[92,121],"text":[]}
+  ],
+  "imports": [],
+  "references": [
+    {"id":"r0","kind":"Value","name":"a","resolution":{"Resolved":"d0"},"scope":"s2","span":[20,21]},
+    {"id":"r1","kind":"Value","name":"b","resolution":{"Resolved":"d1"},"scope":"s3","span":[59,60]},
+    {"id":"r2","kind":"Value","name":"c","resolution":{"Resolved":"d2"},"scope":"s4","span":[110,111]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,126]},
+    {"domain":"Server","id":"s1","kind":"Function","parent":"s0","span":[80,122]},
+    {"domain":"BrowserModule","id":"s2","kind":"Root","parent":null,"span":[10,22]},
+    {"domain":"BrowserModule","id":"s3","kind":"Root","parent":null,"span":[49,61]},
+    {"domain":"BrowserModule","id":"s4","kind":"Root","parent":null,"span":[100,112]}
+  ],
+  "scripts": [
+    {"bundled":true,"content":{"raw":"const a=1;a;","span":[10,22]},"dynamic_injection":false,"element":"e0","injected":[],"language":"TypeScript","mode":"Processed","references":["r0"],"source":null,"span":[2,31]},
+    {"bundled":true,"content":{"raw":"const b=1;b;","span":[49,61]},"dynamic_injection":false,"element":"e1","injected":[],"language":"TypeScript","mode":"Processed","references":["r1"],"source":null,"span":[41,70]},
+    {"bundled":true,"content":{"raw":"const c=1;c;","span":[100,112]},"dynamic_injection":false,"element":"e2","injected":[],"language":"TypeScript","mode":"Processed","references":["r2"],"source":null,"span":[92,121]}
+  ],
+  "styles": []
+}}

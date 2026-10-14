@@ -1,0 +1,58 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [
+    {"closing_name_span":null,"directives":[],"element":"e0","name":"Counter","name_span":[181,188],"reference":"r3","span":[180,191]},
+    {"closing_name_span":null,"directives":[],"element":"e1","name":"NamedCounter","name_span":[193,205],"reference":"r4","span":[192,208]},
+    {"closing_name_span":null,"directives":[],"element":"e3","name":"Counter","name_span":[251,258],"reference":"r6","span":[250,272]},
+    {"closing_name_span":null,"directives":[],"element":"e4","name":"Counter","name_span":[305,312],"reference":"r8","span":[304,326]},
+    {"closing_name_span":null,"directives":[],"element":"e5","name":"Counter","name_span":[332,339],"reference":"r9","span":[331,353]},
+    {"closing_name_span":null,"directives":[],"element":"e6","name":"Counter","name_span":[368,375],"reference":"r10","span":[367,388]}
+  ],
+  "declarations": [
+    {"id":"d0","import":{"source":"./Counter.astro","specifier":"Default","type_only":false},"injection":null,"kind":"Import","name":"Counter","scope":"s0","span":[11,18]},
+    {"id":"d1","import":{"source":"./components","specifier":{"Named":"Counter"},"type_only":false},"injection":null,"kind":"Import","name":"NamedCounter","scope":"s0","span":[63,75]},
+    {"id":"d2","import":null,"injection":null,"kind":"Variable","name":"components","scope":"s0","span":[105,115]},
+    {"id":"d3","import":null,"injection":null,"kind":"Variable","name":"Counter","scope":"s1","span":[139,146]},
+    {"id":"d4","import":null,"injection":null,"kind":"Parameter","name":"Counter","scope":"s2","span":[226,233]},
+    {"id":"d5","import":null,"injection":null,"kind":"Parameter","name":"Counter","scope":"s3","span":[292,299]}
+  ],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[],"closing_span":null,"directives":[],"id":"e0","kind":"Component","name":"Counter","name_span":[181,188],"opening_span":[180,191],"parent":null,"reference":"r3","slot":null,"span":[180,191],"text":[]},
+    {"attributes":[],"closing_span":null,"directives":[],"id":"e1","kind":"Component","name":"NamedCounter","name_span":[193,205],"opening_span":[192,208],"parent":null,"reference":"r4","slot":null,"span":[192,208],"text":[]},
+    {"attributes":[],"closing_span":[354,364],"directives":[],"id":"e2","kind":"Html","name":"section","name_span":[239,246],"opening_span":[238,247],"parent":null,"reference":null,"slot":null,"span":[238,364],"text":[{"raw":"\n  ","span":[247,250]},{"raw":"\n  ","span":[272,275]},{"raw":"\n  ","span":[328,331]},{"raw":"\n","span":[353,354]}]},
+    {"attributes":[{"literal":{"Boolean":true},"name":"data-outer","name_span":[259,269],"span":[259,269],"spread":false,"value":null}],"closing_span":null,"directives":[],"id":"e3","kind":"Dynamic","name":"Counter","name_span":[251,258],"opening_span":[250,272],"parent":"e2","reference":"r6","slot":null,"span":[250,272],"text":[]},
+    {"attributes":[{"literal":{"Boolean":true},"name":"data-inner","name_span":[313,323],"span":[313,323],"spread":false,"value":null}],"closing_span":null,"directives":[],"id":"e4","kind":"Dynamic","name":"Counter","name_span":[305,312],"opening_span":[304,326],"parent":"e2","reference":"r8","slot":null,"span":[304,326],"text":[]},
+    {"attributes":[{"literal":{"Boolean":true},"name":"data-after","name_span":[340,350],"span":[340,350],"spread":false,"value":null}],"closing_span":null,"directives":[],"id":"e5","kind":"Dynamic","name":"Counter","name_span":[332,339],"opening_span":[331,353],"parent":"e2","reference":"r9","slot":null,"span":[331,353],"text":[]},
+    {"attributes":[{"literal":{"Boolean":true},"name":"data-root","name_span":[376,385],"span":[376,385],"spread":false,"value":null}],"closing_span":null,"directives":[],"id":"e6","kind":"Component","name":"Counter","name_span":[368,375],"opening_span":[367,388],"parent":null,"reference":"r10","slot":null,"span":[367,388],"text":[]}
+  ],
+  "imports": [
+    {"bindings":[{"name":"Counter","span":[11,18],"target":{"source":"./Counter.astro","specifier":"Default","type_only":false}}],"source":"./Counter.astro","source_span":[24,41],"span":[4,42]},
+    {"bindings":[{"name":"NamedCounter","span":[63,75],"target":{"source":"./components","specifier":{"Named":"Counter"},"type_only":false}}],"source":"./components","source_span":[83,97],"span":[43,98]}
+  ],
+  "references": [
+    {"id":"r0","kind":"Value","name":"Counter","resolution":{"Resolved":"d0"},"scope":"s0","span":[119,126]},
+    {"id":"r1","kind":"Value","name":"NamedCounter","resolution":{"Resolved":"d1"},"scope":"s1","span":[149,161]},
+    {"id":"r2","kind":"Value","name":"Counter","resolution":{"Resolved":"d3"},"scope":"s1","span":[165,172]},
+    {"id":"r3","kind":"Value","name":"Counter","resolution":{"Resolved":"d0"},"scope":"s0","span":[181,188]},
+    {"id":"r4","kind":"Value","name":"NamedCounter","resolution":{"Resolved":"d1"},"scope":"s0","span":[193,205]},
+    {"id":"r5","kind":"Value","name":"components","resolution":{"Resolved":"d2"},"scope":"s0","span":[210,220]},
+    {"id":"r6","kind":"Value","name":"Counter","resolution":{"Resolved":"d4"},"scope":"s2","span":[251,258]},
+    {"id":"r7","kind":"Value","name":"components","resolution":{"Resolved":"d2"},"scope":"s2","span":[276,286]},
+    {"id":"r8","kind":"Value","name":"Counter","resolution":{"Resolved":"d5"},"scope":"s3","span":[305,312]},
+    {"id":"r9","kind":"Value","name":"Counter","resolution":{"Resolved":"d4"},"scope":"s2","span":[332,339]},
+    {"id":"r10","kind":"Value","name":"Counter","resolution":{"Resolved":"d0"},"scope":"s0","span":[368,375]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,389]},
+    {"domain":"Server","id":"s1","kind":"Block","parent":"s0","span":[129,175]},
+    {"domain":"Server","id":"s2","kind":"Function","parent":"s0","span":[225,364]},
+    {"domain":"Server","id":"s3","kind":"Function","parent":"s2","span":[291,326]}
+  ],
+  "scripts": [],
+  "styles": []
+}}

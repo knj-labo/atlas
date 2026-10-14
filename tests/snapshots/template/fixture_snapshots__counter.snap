@@ -1,0 +1,45 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [
+    {"builtin":"Astro","member":null,"span":[62,67]},
+    {"builtin":"Astro","member":"props","span":[62,73]}
+  ],
+  "components": [
+    {"closing_name_span":null,"directives":[{"name":"client:visible","name_span":[89,103],"span":[89,103],"status":"RequiresProjectContext","value":null}],"element":"e0","name":"Counter","name_span":[81,88],"reference":"r1","span":[80,106]},
+    {"closing_name_span":null,"directives":[],"element":"e1","name":"Counter","name_span":[139,146],"reference":"r3","span":[138,149]}
+  ],
+  "declarations": [
+    {"id":"d0","import":{"source":"./Counter.tsx","specifier":"Default","type_only":false},"injection":null,"kind":"Import","name":"Counter","scope":"s0","span":[11,18]},
+    {"id":"d1","import":null,"injection":null,"kind":"Variable","name":"widgets","scope":"s0","span":[50,57]},
+    {"id":"d2","import":null,"injection":null,"kind":"Parameter","name":"Counter","scope":"s1","span":[122,129]}
+  ],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[{"literal":{"Boolean":true},"name":"client:visible","name_span":[89,103],"span":[89,103],"spread":false,"value":null}],"closing_span":null,"directives":[{"name":"client:visible","name_span":[89,103],"span":[89,103],"status":"RequiresProjectContext","value":null}],"id":"e0","kind":"Component","name":"Counter","name_span":[81,88],"opening_span":[80,106],"parent":null,"reference":"r1","slot":null,"span":[80,106],"text":[]},
+    {"attributes":[],"closing_span":null,"directives":[],"id":"e1","kind":"Dynamic","name":"Counter","name_span":[139,146],"opening_span":[138,149],"parent":null,"reference":"r3","slot":null,"span":[138,149],"text":[]},
+    {"attributes":[],"closing_span":[188,197],"directives":[],"id":"e2","kind":"Script","name":"script","name_span":[156,162],"opening_span":[155,163],"parent":null,"reference":null,"slot":null,"span":[155,197],"text":[]}
+  ],
+  "imports": [
+    {"bindings":[{"name":"Counter","span":[11,18],"target":{"source":"./Counter.tsx","specifier":"Default","type_only":false}}],"source":"./Counter.tsx","source_span":[24,39],"span":[4,40]}
+  ],
+  "references": [
+    {"id":"r0","kind":"Value","name":"Astro","resolution":{"Builtin":"Astro"},"scope":"s0","span":[62,67]},
+    {"id":"r1","kind":"Value","name":"Counter","resolution":{"Resolved":"d0"},"scope":"s0","span":[81,88]},
+    {"id":"r2","kind":"Value","name":"widgets","resolution":{"Resolved":"d1"},"scope":"s0","span":[109,116]},
+    {"id":"r3","kind":"Value","name":"Counter","resolution":{"Resolved":"d2"},"scope":"s1","span":[139,146]},
+    {"id":"r4","kind":"Value","name":"console","resolution":"Unresolved","scope":"s2","span":[166,173]},
+    {"id":"r5","kind":"Value","name":"Counter","resolution":"Unresolved","scope":"s2","span":[178,185]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,198]},
+    {"domain":"Server","id":"s1","kind":"Function","parent":"s0","span":[121,151]},
+    {"domain":"BrowserModule","id":"s2","kind":"Root","parent":null,"span":[163,188]}
+  ],
+  "scripts": [
+    {"bundled":true,"content":{"raw":"\n  console.log(Counter);\n","span":[163,188]},"dynamic_injection":false,"element":"e2","injected":[],"language":"TypeScript","mode":"Processed","references":["r4","r5"],"source":null,"span":[155,197]}
+  ],
+  "styles": []
+}}

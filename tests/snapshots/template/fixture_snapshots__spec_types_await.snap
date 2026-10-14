@@ -1,0 +1,38 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [
+    {"builtin":"Astro","member":null,"span":[63,68]},
+    {"builtin":"Astro","member":"url","span":[63,72]},
+    {"builtin":"Astro","member":null,"span":[93,98]},
+    {"builtin":"Astro","member":"props","span":[93,104]}
+  ],
+  "components": [],
+  "declarations": [
+    {"id":"d0","import":{"source":"./props","specifier":{"Named":"Props"},"type_only":true},"injection":null,"kind":"Import","name":"Props","scope":"s0","span":[17,22]},
+    {"id":"d1","import":null,"injection":null,"kind":"Variable","name":"data","scope":"s0","span":[46,50]},
+    {"id":"d2","import":null,"injection":null,"kind":"Variable","name":"props","scope":"s0","span":[81,86]}
+  ],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[],"closing_span":[128,134],"directives":[],"id":"e0","kind":"Html","name":"div","name_span":[111,114],"opening_span":[110,115],"parent":null,"reference":null,"slot":null,"span":[110,134],"text":[]}
+  ],
+  "imports": [
+    {"bindings":[{"name":"Props","span":[17,22],"target":{"source":"./props","specifier":{"Named":"Props"},"type_only":true}}],"source":"./props","source_span":[29,38],"span":[4,39]}
+  ],
+  "references": [
+    {"id":"r0","kind":"Value","name":"fetch","resolution":"Unresolved","scope":"s0","span":[57,62]},
+    {"id":"r1","kind":"Value","name":"Astro","resolution":{"Builtin":"Astro"},"scope":"s0","span":[63,68]},
+    {"id":"r2","kind":"Type","name":"Props","resolution":{"Resolved":"d0"},"scope":"s0","span":[87,92]},
+    {"id":"r3","kind":"Value","name":"Astro","resolution":{"Builtin":"Astro"},"scope":"s0","span":[93,98]},
+    {"id":"r4","kind":"Value","name":"data","resolution":{"Resolved":"d1"},"scope":"s0","span":[116,120]},
+    {"id":"r5","kind":"Value","name":"props","resolution":{"Resolved":"d2"},"scope":"s0","span":[122,127]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,134]}
+  ],
+  "scripts": [],
+  "styles": []
+}}

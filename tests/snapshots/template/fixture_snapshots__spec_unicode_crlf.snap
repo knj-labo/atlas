@@ -1,0 +1,29 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [
+    {"closing_name_span":null,"directives":[{"name":"client:media","name_span":[89,101],"span":[89,118],"status":"RequiresProjectContext","value":{"kind":"String","raw":"\"(width > 20px)\"","span":[102,118]}}],"element":"e1","name":"C","name_span":[61,62],"reference":"r0","span":[60,120]}
+  ],
+  "declarations": [
+    {"id":"d0","import":{"source":"./和文","specifier":"Default","type_only":false},"injection":null,"kind":"Import","name":"C","scope":"s0","span":[12,13]}
+  ],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[],"closing_span":[54,58],"directives":[],"id":"e0","kind":"Html","name":"p","name_span":[38,39],"opening_span":[37,40],"parent":null,"reference":null,"slot":null,"span":[37,58],"text":[{"raw":"日本語 😀","span":[40,54]}]},
+    {"attributes":[{"literal":{"String":"😀 & 和文"},"name":"title","name_span":[63,68],"span":[63,88],"spread":false,"value":{"kind":"String","raw":"\"😀 &amp; 和文\"","span":[69,88]}},{"literal":{"String":"(width > 20px)"},"name":"client:media","name_span":[89,101],"span":[89,118],"spread":false,"value":{"kind":"String","raw":"\"(width > 20px)\"","span":[102,118]}}],"closing_span":null,"directives":[{"name":"client:media","name_span":[89,101],"span":[89,118],"status":"RequiresProjectContext","value":{"kind":"String","raw":"\"(width > 20px)\"","span":[102,118]}}],"id":"e1","kind":"Component","name":"C","name_span":[61,62],"opening_span":[60,120],"parent":null,"reference":"r0","slot":null,"span":[60,120],"text":[]}
+  ],
+  "imports": [
+    {"bindings":[{"name":"C","span":[12,13],"target":{"source":"./和文","specifier":"Default","type_only":false}}],"source":"./和文","source_span":[19,29],"span":[5,30]}
+  ],
+  "references": [
+    {"id":"r0","kind":"Value","name":"C","resolution":{"Resolved":"d0"},"scope":"s0","span":[61,62]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,120]}
+  ],
+  "scripts": [],
+  "styles": []
+}}

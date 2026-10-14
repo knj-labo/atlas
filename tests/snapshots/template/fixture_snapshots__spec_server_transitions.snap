@@ -1,0 +1,28 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [
+    {"closing_name_span":null,"directives":[{"name":"server:defer","name_span":[38,50],"span":[38,50],"status":"Valid","value":null},{"name":"transition:name","name_span":[51,66],"span":[51,74],"status":"Valid","value":{"kind":"String","raw":"\"panel\"","span":[67,74]}},{"name":"transition:animate","name_span":[75,93],"span":[75,100],"status":"Valid","value":{"kind":"String","raw":"\"fade\"","span":[94,100]}},{"name":"transition:persist","name_span":[101,119],"span":[101,119],"status":"Valid","value":null}],"element":"e0","name":"C","name_span":[36,37],"reference":"r0","span":[35,121]}
+  ],
+  "declarations": [
+    {"id":"d0","import":{"source":"./C.astro","specifier":"Default","type_only":false},"injection":null,"kind":"Import","name":"C","scope":"s0","span":[11,12]}
+  ],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[{"literal":{"Boolean":true},"name":"server:defer","name_span":[38,50],"span":[38,50],"spread":false,"value":null},{"literal":{"String":"panel"},"name":"transition:name","name_span":[51,66],"span":[51,74],"spread":false,"value":{"kind":"String","raw":"\"panel\"","span":[67,74]}},{"literal":{"String":"fade"},"name":"transition:animate","name_span":[75,93],"span":[75,100],"spread":false,"value":{"kind":"String","raw":"\"fade\"","span":[94,100]}},{"literal":{"Boolean":true},"name":"transition:persist","name_span":[101,119],"span":[101,119],"spread":false,"value":null}],"closing_span":null,"directives":[{"name":"server:defer","name_span":[38,50],"span":[38,50],"status":"Valid","value":null},{"name":"transition:name","name_span":[51,66],"span":[51,74],"status":"Valid","value":{"kind":"String","raw":"\"panel\"","span":[67,74]}},{"name":"transition:animate","name_span":[75,93],"span":[75,100],"status":"Valid","value":{"kind":"String","raw":"\"fade\"","span":[94,100]}},{"name":"transition:persist","name_span":[101,119],"span":[101,119],"status":"Valid","value":null}],"id":"e0","kind":"Component","name":"C","name_span":[36,37],"opening_span":[35,121],"parent":null,"reference":"r0","slot":null,"span":[35,121],"text":[]}
+  ],
+  "imports": [
+    {"bindings":[{"name":"C","span":[11,12],"target":{"source":"./C.astro","specifier":"Default","type_only":false}}],"source":"./C.astro","source_span":[18,29],"span":[4,30]}
+  ],
+  "references": [
+    {"id":"r0","kind":"Value","name":"C","resolution":{"Resolved":"d0"},"scope":"s0","span":[36,37]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,121]}
+  ],
+  "scripts": [],
+  "styles": []
+}}

@@ -1,0 +1,39 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [
+    {"closing_name_span":[328,335],"directives":[{"name":"client:visible","name_span":[266,280],"span":[266,280],"status":"RequiresProjectContext","value":null},{"name":"client:idle","name_span":[281,292],"span":[281,292],"status":"RequiresProjectContext","value":null},{"name":"client:visible","name_span":[293,307],"span":[293,307],"status":"RequiresProjectContext","value":null},{"name":"custom:flag","name_span":[308,319],"span":[308,325],"status":"UnknownDirective","value":{"kind":"String","raw":"\"yes\"","span":[320,325]}}],"element":"e2","name":"Counter","name_span":[258,265],"reference":"r1","span":[257,336]},
+    {"closing_name_span":null,"directives":[{"name":"client:only","name_span":[346,357],"span":[346,365],"status":"RequiresProjectContext","value":{"kind":"String","raw":"\"react\"","span":[358,365]}}],"element":"e3","name":"Counter","name_span":[338,345],"reference":"r3","span":[337,368]},
+    {"closing_name_span":null,"directives":[],"element":"e4","name":"Counter","name_span":[370,377],"reference":"r4","span":[369,380]}
+  ],
+  "declarations": [
+    {"id":"d0","import":{"source":"./Counter.astro","specifier":"Default","type_only":false},"injection":null,"kind":"Import","name":"Counter","scope":"s0","span":[11,18]},
+    {"id":"d1","import":null,"injection":null,"kind":"Variable","name":"markup","scope":"s0","span":[49,55]}
+  ],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[{"literal":{"String":"Counter"},"name":"data-example","name_span":[216,228],"span":[216,238],"spread":false,"value":{"kind":"String","raw":"\"Counter\"","span":[229,238]}}],"closing_span":[250,256],"directives":[],"id":"e0","kind":"Html","name":"div","name_span":[212,215],"opening_span":[211,239],"parent":null,"reference":null,"slot":null,"span":[211,256],"text":[]},
+    {"attributes":[],"closing_span":null,"directives":[],"id":"e1","kind":"Html","name":"counter","name_span":[240,247],"opening_span":[239,250],"parent":"e0","reference":null,"slot":null,"span":[239,250],"text":[]},
+    {"attributes":[{"literal":{"Boolean":true},"name":"client:visible","name_span":[266,280],"span":[266,280],"spread":false,"value":null},{"literal":{"Boolean":true},"name":"client:idle","name_span":[281,292],"span":[281,292],"spread":false,"value":null},{"literal":{"Boolean":true},"name":"client:visible","name_span":[293,307],"span":[293,307],"spread":false,"value":null},{"literal":{"String":"yes"},"name":"custom:flag","name_span":[308,319],"span":[308,325],"spread":false,"value":{"kind":"String","raw":"\"yes\"","span":[320,325]}}],"closing_span":[326,336],"directives":[{"name":"client:visible","name_span":[266,280],"span":[266,280],"status":"RequiresProjectContext","value":null},{"name":"client:idle","name_span":[281,292],"span":[281,292],"status":"RequiresProjectContext","value":null},{"name":"client:visible","name_span":[293,307],"span":[293,307],"status":"RequiresProjectContext","value":null},{"name":"custom:flag","name_span":[308,319],"span":[308,325],"status":"UnknownDirective","value":{"kind":"String","raw":"\"yes\"","span":[320,325]}}],"id":"e2","kind":"Component","name":"Counter","name_span":[258,265],"opening_span":[257,326],"parent":null,"reference":"r1","slot":null,"span":[257,336],"text":[]},
+    {"attributes":[{"literal":{"String":"react"},"name":"client:only","name_span":[346,357],"span":[346,365],"spread":false,"value":{"kind":"String","raw":"\"react\"","span":[358,365]}}],"closing_span":null,"directives":[{"name":"client:only","name_span":[346,357],"span":[346,365],"status":"RequiresProjectContext","value":{"kind":"String","raw":"\"react\"","span":[358,365]}}],"id":"e3","kind":"Component","name":"Counter","name_span":[338,345],"opening_span":[337,368],"parent":null,"reference":"r3","slot":null,"span":[337,368],"text":[]},
+    {"attributes":[],"closing_span":null,"directives":[],"id":"e4","kind":"Component","name":"Counter","name_span":[370,377],"opening_span":[369,380],"parent":null,"reference":"r4","slot":null,"span":[369,380],"text":[]}
+  ],
+  "imports": [
+    {"bindings":[{"name":"Counter","span":[11,18],"target":{"source":"./Counter.astro","specifier":"Default","type_only":false}}],"source":"./Counter.astro","source_span":[24,41],"span":[4,42]}
+  ],
+  "references": [
+    {"id":"r0","kind":"Value","name":"markup","resolution":{"Resolved":"d1"},"scope":"s0","span":[203,209]},
+    {"id":"r1","kind":"Value","name":"Counter","resolution":{"Resolved":"d0"},"scope":"s0","span":[258,265]},
+    {"id":"r2","kind":"Value","name":"Counter","resolution":{"Resolved":"d0"},"scope":"s0","span":[328,335]},
+    {"id":"r3","kind":"Value","name":"Counter","resolution":{"Resolved":"d0"},"scope":"s0","span":[338,345]},
+    {"id":"r4","kind":"Value","name":"Counter","resolution":{"Resolved":"d0"},"scope":"s0","span":[370,377]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,381]}
+  ],
+  "scripts": [],
+  "styles": []
+}}

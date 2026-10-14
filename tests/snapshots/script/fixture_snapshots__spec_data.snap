@@ -1,0 +1,22 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [],
+  "declarations": [],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[{"literal":{"String":"application/ld+json"},"name":"type","name_span":[8,12],"span":[8,34],"spread":false,"value":{"kind":"String","raw":"\"application/ld+json\"","span":[13,34]}}],"closing_span":[52,61],"directives":[],"id":"e0","kind":"Script","name":"script","name_span":[1,7],"opening_span":[0,35],"parent":null,"reference":null,"slot":null,"span":[0,61],"text":[{"raw":"{\"@type\":\"Thing\"}","span":[35,52]}]}
+  ],
+  "imports": [],
+  "references": [],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,61]}
+  ],
+  "scripts": [
+    {"bundled":false,"content":{"raw":"{\"@type\":\"Thing\"}","span":[35,52]},"dynamic_injection":false,"element":"e0","injected":[],"language":"Raw","mode":"Data","references":[],"source":null,"span":[0,61]}
+  ],
+  "styles": []
+}}

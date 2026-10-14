@@ -1,0 +1,28 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [],
+  "declarations": [],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[],"closing_span":[20,28],"directives":[],"id":"e0","kind":"Style","name":"style","name_span":[1,6],"opening_span":[0,7],"parent":null,"reference":null,"slot":null,"span":[0,28],"text":[{"raw":".a{color:red}","span":[7,20]}]},
+    {"attributes":[{"literal":{"Boolean":true},"name":"is:global","name_span":[35,44],"span":[35,44],"spread":false,"value":null}],"closing_span":[59,67],"directives":[{"name":"is:global","name_span":[35,44],"span":[35,44],"status":"Valid","value":null}],"id":"e1","kind":"Style","name":"style","name_span":[29,34],"opening_span":[28,45],"parent":null,"reference":null,"slot":null,"span":[28,67],"text":[{"raw":".b{color:blue}","span":[45,59]}]},
+    {"attributes":[{"literal":{"Boolean":true},"name":"is:inline","name_span":[74,83],"span":[74,83],"spread":false,"value":null}],"closing_span":[97,105],"directives":[{"name":"is:inline","name_span":[74,83],"span":[74,83],"status":"Valid","value":null}],"id":"e2","kind":"Style","name":"style","name_span":[68,73],"opening_span":[67,84],"parent":null,"reference":null,"slot":null,"span":[67,105],"text":[{"raw":".c{color:red}","span":[84,97]}]},
+    {"attributes":[{"literal":{"String":"scss"},"name":"lang","name_span":[112,116],"span":[112,123],"spread":false,"value":{"kind":"String","raw":"\"scss\"","span":[117,123]}}],"closing_span":[131,139],"directives":[],"id":"e3","kind":"Style","name":"style","name_span":[106,111],"opening_span":[105,124],"parent":null,"reference":null,"slot":null,"span":[105,139],"text":[{"raw":"$x:red;","span":[124,131]}]}
+  ],
+  "imports": [],
+  "references": [],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,139]}
+  ],
+  "scripts": [],
+  "styles": [
+    {"content":{"raw":".a{color:red}","span":[7,20]},"css":{"declarations":[{"id":"decl0","important":false,"name":"color","name_span":[10,15],"rule":"rule0","span":[10,19],"value":{"raw":"red","span":[16,19]}}],"definitions":[],"dependencies":[],"references":[],"rules":[{"conditions":[],"id":"rule0","kind":"Style","parent":null,"prelude":{"raw":".a","span":[7,9]},"selectors":[{"classes":[{"name":"a","span":[8,9]}],"global":false,"ids":[],"nesting":false,"raw":".a","span":[7,9]}],"span":[7,20]}]},"dynamic_injection":false,"element":"e0","id":"style0","injected":[],"inline_attribute":false,"language":"css","mode":"Scoped","span":[0,28]},
+    {"content":{"raw":".b{color:blue}","span":[45,59]},"css":{"declarations":[{"id":"decl0","important":false,"name":"color","name_span":[48,53],"rule":"rule0","span":[48,58],"value":{"raw":"blue","span":[54,58]}}],"definitions":[],"dependencies":[],"references":[],"rules":[{"conditions":[],"id":"rule0","kind":"Style","parent":null,"prelude":{"raw":".b","span":[45,47]},"selectors":[{"classes":[{"name":"b","span":[46,47]}],"global":false,"ids":[],"nesting":false,"raw":".b","span":[45,47]}],"span":[45,59]}]},"dynamic_injection":false,"element":"e1","id":"style1","injected":[],"inline_attribute":false,"language":"css","mode":"Global","span":[28,67]},
+    {"content":{"raw":".c{color:red}","span":[84,97]},"css":{"declarations":[{"id":"decl0","important":false,"name":"color","name_span":[87,92],"rule":"rule0","span":[87,96],"value":{"raw":"red","span":[93,96]}}],"definitions":[],"dependencies":[],"references":[],"rules":[{"conditions":[],"id":"rule0","kind":"Style","parent":null,"prelude":{"raw":".c","span":[84,86]},"selectors":[{"classes":[{"name":"c","span":[85,86]}],"global":false,"ids":[],"nesting":false,"raw":".c","span":[84,86]}],"span":[84,97]}]},"dynamic_injection":false,"element":"e2","id":"style2","injected":[],"inline_attribute":false,"language":"css","mode":"Inline","span":[67,105]},
+    {"content":{"raw":"$x:red;","span":[124,131]},"css":null,"dynamic_injection":false,"element":"e3","id":"style3","injected":[],"inline_attribute":false,"language":"scss","mode":"Scoped","span":[105,139]}
+  ]
+}}

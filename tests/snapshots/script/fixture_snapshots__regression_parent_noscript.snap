@@ -1,0 +1,26 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [],
+  "declarations": [],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[],"closing_span":[91,102],"directives":[],"id":"e0","kind":"Html","name":"noscript","name_span":[1,9],"opening_span":[0,10],"parent":null,"reference":null,"slot":null,"span":[0,102],"text":[]},
+    {"attributes":[{"literal":{"String":"a.js"},"name":"src","name_span":[18,21],"span":[18,28],"spread":false,"value":{"kind":"String","raw":"\"a.js\"","span":[22,28]}}],"closing_span":[29,38],"directives":[],"id":"e1","kind":"Script","name":"script","name_span":[11,17],"opening_span":[10,29],"parent":"e0","reference":null,"slot":null,"span":[10,38],"text":[]},
+    {"attributes":[{"literal":{"Object":[["x",{"Number":"1"}]]},"name":"define:vars","name_span":[45,56],"span":[45,64],"spread":false,"value":{"kind":"Expression","raw":"{{x:1}}","span":[57,64]}}],"closing_span":[83,91],"directives":[{"name":"define:vars","name_span":[45,56],"span":[45,64],"status":"Valid","value":{"kind":"Expression","raw":"{{x:1}}","span":[57,64]}}],"id":"e2","kind":"Style","name":"style","name_span":[39,44],"opening_span":[38,65],"parent":"e0","reference":null,"slot":null,"span":[38,91],"text":[{"raw":".a{color:var(--x)}","span":[65,83]}]}
+  ],
+  "imports": [],
+  "references": [],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,103]}
+  ],
+  "scripts": [
+    {"bundled":false,"content":{"raw":"","span":[29,29]},"dynamic_injection":false,"element":"e1","injected":[],"language":"JavaScript","mode":"External","references":[],"source":{"kind":"String","raw":"\"a.js\"","span":[22,28]},"span":[10,38]}
+  ],
+  "styles": [
+    {"content":{"raw":".a{color:var(--x)}","span":[65,83]},"css":{"declarations":[{"id":"decl0","important":false,"name":"color","name_span":[68,73],"rule":"rule0","span":[68,82],"value":{"raw":"var(--x)","span":[74,82]}}],"definitions":[],"dependencies":[],"references":[{"candidates":[],"fallback":null,"kind":"CustomProperty","name":"--x","runtime_dependent":true,"span":[78,81]}],"rules":[{"conditions":[],"id":"rule0","kind":"Style","parent":null,"prelude":{"raw":".a","span":[65,67]},"selectors":[{"classes":[{"name":"a","span":[66,67]}],"global":false,"ids":[],"nesting":false,"raw":".a","span":[65,67]}],"span":[65,83]}]},"dynamic_injection":false,"element":"e2","id":"style0","injected":[],"inline_attribute":false,"language":"css","mode":"Inline","span":[38,91]}
+  ]
+}}

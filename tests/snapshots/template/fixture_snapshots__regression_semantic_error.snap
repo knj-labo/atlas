@@ -1,0 +1,10 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Err": {
+  "diagnostics": [
+    {"code":null,"labels":[{"message":"`same` has already been declared here","span":[10,14]},{"message":"It can not be redeclared here","span":[23,27]}],"message":"Identifier `same` has already been declared","phase":"Semantic","severity":"Error"}
+  ],
+  "parser_panicked": false
+}}

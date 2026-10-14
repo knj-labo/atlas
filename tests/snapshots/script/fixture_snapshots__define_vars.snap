@@ -1,0 +1,30 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [],
+  "declarations": [
+    {"id":"d0","import":null,"injection":null,"kind":"Variable","name":"title","scope":"s0","span":[10,15]},
+    {"id":"d1","import":null,"injection":{"key_span":[54,59],"references":["r0"],"value":{"raw":"title","span":[54,59]}},"kind":"Injected","name":"title","scope":"s1","span":[54,59]}
+  ],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[{"literal":null,"name":"define:vars","name_span":[39,50],"span":[39,62],"spread":false,"value":{"kind":"Expression","raw":"{{ title }}","span":[51,62]}}],"closing_span":[86,95],"directives":[{"name":"define:vars","name_span":[39,50],"span":[39,62],"status":"Dynamic","value":{"kind":"Expression","raw":"{{ title }}","span":[51,62]}}],"id":"e0","kind":"Script","name":"script","name_span":[32,38],"opening_span":[31,63],"parent":null,"reference":null,"slot":null,"span":[31,95],"text":[]}
+  ],
+  "imports": [],
+  "references": [
+    {"id":"r0","kind":"Value","name":"title","resolution":{"Resolved":"d0"},"scope":"s0","span":[54,59]},
+    {"id":"r1","kind":"Value","name":"console","resolution":"Unresolved","scope":"s1","span":[66,73]},
+    {"id":"r2","kind":"Value","name":"title","resolution":{"Resolved":"d1"},"scope":"s1","span":[78,83]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,96]},
+    {"domain":"InjectedScript","id":"s1","kind":"Root","parent":null,"span":[63,86]}
+  ],
+  "scripts": [
+    {"bundled":false,"content":{"raw":"\n  console.log(title);\n","span":[63,86]},"dynamic_injection":false,"element":"e0","injected":["d1"],"language":"JavaScript","mode":"InlineClassic","references":["r1","r2"],"source":null,"span":[31,95]}
+  ],
+  "styles": []
+}}

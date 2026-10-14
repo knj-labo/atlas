@@ -1,0 +1,24 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [
+    {"closing_name_span":null,"directives":[],"element":"e0","name":"Missing","name_span":[1,8],"reference":"r0","span":[0,11]}
+  ],
+  "declarations": [],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[],"closing_span":null,"directives":[],"id":"e0","kind":"Component","name":"Missing","name_span":[1,8],"opening_span":[0,11],"parent":null,"reference":"r0","slot":null,"span":[0,11],"text":[]}
+  ],
+  "imports": [],
+  "references": [
+    {"id":"r0","kind":"Value","name":"Missing","resolution":"Unresolved","scope":"s0","span":[1,8]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,12]}
+  ],
+  "scripts": [],
+  "styles": []
+}}

@@ -1,0 +1,37 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [
+    {"builtin":"Fragment","member":null,"span":[3,11]},
+    {"builtin":"Fragment","member":null,"span":[63,71]}
+  ],
+  "components": [
+    {"closing_name_span":[95,96],"directives":[],"element":"e3","name":"C","name_span":[73,74],"reference":"r2","span":[72,97]}
+  ],
+  "declarations": [],
+  "diagnostics": [
+    {"code":"astro/dynamic-slot","labels":[{"message":null,"span":[80,91]}],"message":"slot name depends on a runtime value","phase":"Astro","severity":"Information"}
+  ],
+  "elements": [
+    {"attributes":[],"closing_span":[97,100],"directives":[],"id":"e0","kind":"Fragment","name":"","name_span":null,"opening_span":[0,2],"parent":null,"reference":null,"slot":null,"span":[0,100],"text":[]},
+    {"attributes":[{"literal":{"String":"header"},"name":"slot","name_span":[12,16],"span":[12,25],"spread":false,"value":{"kind":"String","raw":"\"header\"","span":[17,25]}}],"closing_span":[61,72],"directives":[],"id":"e1","kind":"Fragment","name":"Fragment","name_span":[3,11],"opening_span":[2,26],"parent":"e0","reference":"r0","slot":{"dynamic":false,"name":"header","span":[12,25]},"span":[2,72],"text":[]},
+    {"attributes":[{"literal":{"String":"header"},"name":"name","name_span":[32,36],"span":[32,45],"spread":false,"value":{"kind":"String","raw":"\"header\"","span":[37,45]}}],"closing_span":[54,61],"directives":[],"id":"e2","kind":"Slot","name":"slot","name_span":[27,31],"opening_span":[26,46],"parent":"e1","reference":null,"slot":null,"span":[26,61],"text":[{"raw":"fallback","span":[46,54]}]},
+    {"attributes":[],"closing_span":[93,97],"directives":[],"id":"e3","kind":"Component","name":"C","name_span":[73,74],"opening_span":[72,75],"parent":"e0","reference":"r2","slot":null,"span":[72,97],"text":[]},
+    {"attributes":[{"literal":null,"name":"slot","name_span":[80,84],"span":[80,91],"spread":false,"value":{"kind":"Expression","raw":"{name}","span":[85,91]}}],"closing_span":null,"directives":[],"id":"e4","kind":"Html","name":"div","name_span":[76,79],"opening_span":[75,93],"parent":"e3","reference":null,"slot":{"dynamic":true,"name":null,"span":[80,91]},"span":[75,93],"text":[]}
+  ],
+  "imports": [],
+  "references": [
+    {"id":"r0","kind":"Value","name":"Fragment","resolution":{"Builtin":"Fragment"},"scope":"s0","span":[3,11]},
+    {"id":"r1","kind":"Value","name":"Fragment","resolution":{"Builtin":"Fragment"},"scope":"s0","span":[63,71]},
+    {"id":"r2","kind":"Value","name":"C","resolution":"Unresolved","scope":"s0","span":[73,74]},
+    {"id":"r3","kind":"Value","name":"name","resolution":"Unresolved","scope":"s0","span":[86,90]},
+    {"id":"r4","kind":"Value","name":"C","resolution":"Unresolved","scope":"s0","span":[95,96]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,100]}
+  ],
+  "scripts": [],
+  "styles": []
+}}

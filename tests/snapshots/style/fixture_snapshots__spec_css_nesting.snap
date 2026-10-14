@@ -1,0 +1,22 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [],
+  "declarations": [],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[],"closing_span":[93,101],"directives":[],"id":"e0","kind":"Style","name":"style","name_span":[1,6],"opening_span":[0,7],"parent":null,"reference":null,"slot":null,"span":[0,101],"text":[{"raw":"@layer base{.a,:global(.b){--tone:red;@media (width>1px){&:hover{color:var(--tone)}}}}","span":[7,93]}]}
+  ],
+  "imports": [],
+  "references": [],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,101]}
+  ],
+  "scripts": [],
+  "styles": [
+    {"content":{"raw":"@layer base{.a,:global(.b){--tone:red;@media (width>1px){&:hover{color:var(--tone)}}}}","span":[7,93]},"css":{"declarations":[{"id":"decl0","important":false,"name":"--tone","name_span":[34,40],"rule":"rule1","span":[34,45],"value":{"raw":"red","span":[41,44]}},{"id":"decl1","important":false,"name":"color","name_span":[72,77],"rule":"rule3","span":[72,89],"value":{"raw":"var(--tone)","span":[78,89]}}],"definitions":[{"conditions":[{"raw":"@layer base","span":[7,18]}],"declaration":"decl0","kind":"CustomProperty","name":"--tone","span":[34,40]}],"dependencies":[],"references":[{"candidates":[{"definition":0,"style":"style0"}],"fallback":null,"kind":"CustomProperty","name":"--tone","runtime_dependent":true,"span":[82,88]}],"rules":[{"conditions":[],"id":"rule0","kind":"Layer","parent":null,"prelude":{"raw":"@layer base","span":[7,18]},"selectors":[],"span":[7,93]},{"conditions":[{"raw":"@layer base","span":[7,18]}],"id":"rule1","kind":"Style","parent":"rule0","prelude":{"raw":".a,:global(.b)","span":[19,33]},"selectors":[{"classes":[{"name":"a","span":[20,21]}],"global":false,"ids":[],"nesting":false,"raw":".a","span":[19,21]},{"classes":[{"name":"b","span":[31,32]}],"global":true,"ids":[],"nesting":false,"raw":":global(.b)","span":[22,33]}],"span":[19,92]},{"conditions":[{"raw":"@layer base","span":[7,18]}],"id":"rule2","kind":"Media","parent":"rule1","prelude":{"raw":"@media (width>1px)","span":[45,63]},"selectors":[],"span":[45,91]},{"conditions":[{"raw":"@layer base","span":[7,18]},{"raw":"@media (width>1px)","span":[45,63]}],"id":"rule3","kind":"Style","parent":"rule2","prelude":{"raw":"&:hover","span":[64,71]},"selectors":[{"classes":[],"global":false,"ids":[],"nesting":true,"raw":"&:hover","span":[64,71]}],"span":[64,90]}]},"dynamic_injection":false,"element":"e0","id":"style0","injected":[],"inline_attribute":false,"language":"css","mode":"Scoped","span":[0,101]}
+  ]
+}}

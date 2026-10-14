@@ -1,0 +1,27 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [],
+  "declarations": [
+    {"id":"d0","import":null,"injection":null,"kind":"Variable","name":"count","scope":"s1","span":[18,23]}
+  ],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[{"literal":{"Boolean":true},"name":"defer","name_span":[8,13],"span":[8,13],"spread":false,"value":null}],"closing_span":[32,41],"directives":[],"id":"e0","kind":"Script","name":"script","name_span":[1,7],"opening_span":[0,14],"parent":null,"reference":null,"slot":null,"span":[0,41],"text":[]}
+  ],
+  "imports": [],
+  "references": [
+    {"id":"r0","kind":"Value","name":"count","resolution":{"Resolved":"d0"},"scope":"s1","span":[26,31]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,41]},
+    {"domain":"BrowserClassic","id":"s1","kind":"Root","parent":null,"span":[14,32]}
+  ],
+  "scripts": [
+    {"bundled":false,"content":{"raw":"let count=1;count;","span":[14,32]},"dynamic_injection":false,"element":"e0","injected":[],"language":"JavaScript","mode":"InlineClassic","references":["r0"],"source":null,"span":[0,41]}
+  ],
+  "styles": []
+}}

@@ -1,0 +1,1511 @@
+[
+  {
+    "id": "spec_empty",
+    "file": "empty.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "spec_html",
+    "file": "html.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "spec_components",
+    "file": "components.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "spec_members",
+    "file": "members.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "spec_types_await",
+    "file": "types-await.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "spec_receivers",
+    "file": "receivers.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "spec_fragments_slots",
+    "file": "fragments-slots.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "spec_attributes",
+    "file": "attributes.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "spec_raw",
+    "file": "raw.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "spec_unicode_crlf",
+    "file": "unicode-crlf.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "spec_processed",
+    "file": "processed.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "Processed"
+      ]
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 1
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "spec_module_hoisted",
+    "file": "module-hoisted.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "Processed"
+      ]
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 1
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "spec_module_expression",
+    "file": "module-expression.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "InlineModule"
+      ]
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "spec_module_spread",
+    "file": "module-spread.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "Processed"
+      ]
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 1
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "spec_classic",
+    "file": "classic.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "InlineClassic"
+      ]
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "spec_inline_module",
+    "file": "inline-module.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "InlineModule"
+      ]
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "spec_defer",
+    "file": "defer.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "InlineClassic"
+      ]
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "spec_external",
+    "file": "external.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "External"
+      ]
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 1
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "spec_external_module",
+    "file": "external-module.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "External"
+      ]
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "spec_data",
+    "file": "data.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "Data"
+      ]
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "spec_dynamic_type",
+    "file": "dynamic-type.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "Dynamic"
+      ]
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "spec_injection",
+    "file": "injection.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "InlineClassic"
+      ]
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0,
+      "scriptVars": true
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "spec_expressions",
+    "file": "expressions.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "Processed",
+        "Processed",
+        "Processed"
+      ]
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0,
+      "renderScripts": 3,
+      "difference": "nested-script-extraction"
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "spec_nonhoistable",
+    "file": "nonhoistable.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "InlineClassic",
+        "InlineClassic"
+      ]
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "spec_styles",
+    "file": "styles.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 3,
+      "scripts": 0
+    },
+    "snapshot_group": "style"
+  },
+  {
+    "id": "spec_style_injection",
+    "file": "style-injection.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 1,
+      "scripts": 0
+    },
+    "snapshot_group": "style"
+  },
+  {
+    "id": "spec_css_nesting",
+    "file": "css-nesting.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 1,
+      "scripts": 0
+    },
+    "snapshot_group": "style"
+  },
+  {
+    "id": "spec_inline_css",
+    "file": "inline-css.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "style"
+  },
+  {
+    "id": "spec_api",
+    "file": "api.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "spec_set_directives",
+    "file": "set-directives.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "spec_server_transitions",
+    "file": "server-transitions.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "spec_unknown_components",
+    "file": "unknown-components.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "spec_unquoted_boundary",
+    "file": "unquoted-boundary.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "spec_invalid_expression",
+    "file": "invalid-expression.astro",
+    "atlas": {
+      "error": true,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": true
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "spec_invalid_frontmatter",
+    "file": "invalid-frontmatter.astro",
+    "atlas": {
+      "error": true,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": true
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "spec_invalid_attribute",
+    "file": "invalid-attribute.astro",
+    "atlas": {
+      "error": true,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": true
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "spec_invalid_browser_ts",
+    "file": "invalid-browser-ts.astro",
+    "atlas": {
+      "error": true,
+      "modes": [
+        "InlineClassic"
+      ]
+    },
+    "compiler": {
+      "parseError": false
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "spec_invalid_css",
+    "file": "invalid-css.astro",
+    "atlas": {
+      "error": true,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false
+    },
+    "snapshot_group": "style"
+  },
+  {
+    "id": "counter",
+    "file": "../fixtures/counter.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "Processed"
+      ]
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 1
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "define_vars",
+    "file": "../fixtures/define-vars.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "InlineClassic"
+      ]
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0,
+      "scriptVars": true
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "empty",
+    "file": "../fixtures/empty.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "imports",
+    "file": "../fixtures/imports.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "inline",
+    "file": "../fixtures/inline.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "InlineClassic"
+      ]
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "invalid_frontmatter",
+    "file": "../fixtures/invalid-frontmatter.astro",
+    "atlas": {
+      "error": true,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": true
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "invalid_script",
+    "file": "../fixtures/invalid-script.astro",
+    "atlas": {
+      "error": true,
+      "modes": [
+        "Processed"
+      ]
+    },
+    "compiler": {
+      "parseError": true
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "invalid_template",
+    "file": "../fixtures/invalid-template.astro",
+    "atlas": {
+      "error": true,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": true
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "member",
+    "file": "../fixtures/member.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "no_frontmatter",
+    "file": "../fixtures/no-frontmatter.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "positions",
+    "file": "../fixtures/positions.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "raw_script",
+    "file": "../fixtures/raw-script.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "Data"
+      ]
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "scripts",
+    "file": "../fixtures/scripts.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "Processed",
+        "Processed"
+      ]
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 2
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "shadowing",
+    "file": "../fixtures/shadowing.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "undefined",
+    "file": "../fixtures/undefined.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "usage",
+    "file": "../fixtures/usage.astro",
+    "atlas": {
+      "error": false,
+      "modes": []
+    },
+    "compiler": {
+      "parseError": false,
+      "css": 0,
+      "scripts": 0
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "regression_src_bare",
+    "file": "regression-src-bare.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "Processed"
+      ],
+      "check": "processed-src"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": [
+        {
+          "type": "inline",
+          "code": "const x = 1;\nx;"
+        }
+      ],
+      "css": 0
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "regression_src_expression",
+    "file": "regression-src-expression.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "Processed"
+      ],
+      "check": "processed-src"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": [
+        {
+          "type": "inline",
+          "code": "const x = 1;\nx;"
+        }
+      ],
+      "css": 0
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "regression_src_expression_string",
+    "file": "regression-src-expression-string.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "Processed"
+      ],
+      "check": "processed-src"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": [
+        {
+          "type": "inline",
+          "code": "const x = 1;\nx;"
+        }
+      ],
+      "css": 0
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "regression_src_literal",
+    "file": "regression-src-literal.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "External"
+      ],
+      "check": "external-src"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": [
+        {
+          "type": "external",
+          "src": "a.js"
+        }
+      ],
+      "css": 0
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "regression_src_invalid",
+    "file": "regression-src-invalid.astro",
+    "atlas": {
+      "error": true,
+      "modes": [
+        "Processed"
+      ],
+      "check": "parser-error"
+    },
+    "compiler": {
+      "parseError": true,
+      "scripts": 0,
+      "css": 0
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "regression_isolation_empty",
+    "file": "regression-isolation-empty.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "InlineClassic",
+        "InlineClassic"
+      ],
+      "check": "isolation"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": 0,
+      "css": 0,
+      "scriptVars": true,
+      "wrappers": 1
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "regression_reader_empty",
+    "file": "regression-reader-empty.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "InlineClassic",
+        "InlineClassic"
+      ],
+      "check": "reader"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": 0,
+      "css": 0,
+      "scriptVars": true,
+      "wrappers": 1
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "regression_isolation_dynamic",
+    "file": "regression-isolation-dynamic.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "InlineClassic",
+        "InlineClassic"
+      ],
+      "check": "isolation"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": 0,
+      "css": 0,
+      "scriptVars": true,
+      "wrappers": 1
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "regression_reader_dynamic",
+    "file": "regression-reader-dynamic.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "InlineClassic",
+        "InlineClassic"
+      ],
+      "check": "reader"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": 0,
+      "css": 0,
+      "scriptVars": true,
+      "wrappers": 1
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "regression_isolation_static",
+    "file": "regression-isolation-static.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "InlineClassic",
+        "InlineClassic"
+      ],
+      "check": "isolation"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": 0,
+      "css": 0,
+      "scriptVars": true,
+      "wrappers": 1
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "regression_reader_static",
+    "file": "regression-reader-static.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "InlineClassic",
+        "InlineClassic"
+      ],
+      "check": "reader"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": 0,
+      "css": 0,
+      "scriptVars": true,
+      "wrappers": 1
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "regression_reader_local",
+    "file": "regression-reader-local.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "InlineClassic",
+        "InlineClassic"
+      ],
+      "check": "reader-local"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": 0,
+      "css": 0,
+      "scriptVars": true,
+      "wrappers": 1
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "regression_empty_return",
+    "file": "regression-empty-return.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "InlineClassic"
+      ],
+      "check": "empty-return"
+    },
+    "compiler": {
+      "parseError": true,
+      "scripts": 0,
+      "css": 0,
+      "scriptVars": false,
+      "wrappers": 0,
+      "grammar": {
+        "kind": "classic",
+        "code": "(function(){return;})();",
+        "valid": true
+      }
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "regression_style_inline",
+    "file": "regression-style-inline.astro",
+    "atlas": {
+      "error": false,
+      "modes": [],
+      "check": "inline-style"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": 0,
+      "css": 0,
+      "styleVars": false
+    },
+    "snapshot_group": "style"
+  },
+  {
+    "id": "regression_parent_template",
+    "file": "regression-parent-template.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "External"
+      ],
+      "check": "parent"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": 0,
+      "css": 0,
+      "styleVars": false
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "regression_parent_svg",
+    "file": "regression-parent-svg.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "External"
+      ],
+      "check": "parent"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": 0,
+      "css": 0,
+      "styleVars": false
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "regression_parent_noscript",
+    "file": "regression-parent-noscript.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "External"
+      ],
+      "check": "parent"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": 0,
+      "css": 0,
+      "styleVars": false
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "regression_style_effective",
+    "file": "regression-style-effective.astro",
+    "atlas": {
+      "error": false,
+      "modes": [],
+      "check": "effective-style"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": 0,
+      "css": 1,
+      "styleVars": true
+    },
+    "snapshot_group": "style"
+  },
+  {
+    "id": "regression_animation_priority",
+    "file": "regression-animation-priority.astro",
+    "atlas": {
+      "error": false,
+      "modes": [],
+      "check": "priority",
+      "animationSpans": [
+        [
+          83,
+          87
+        ],
+        [
+          114,
+          123
+        ],
+        [
+          150,
+          156
+        ]
+      ]
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": 0,
+      "css": 1
+    },
+    "snapshot_group": "style"
+  },
+  {
+    "id": "regression_animation_slots",
+    "file": "regression-animation-slots.astro",
+    "atlas": {
+      "error": false,
+      "modes": [],
+      "check": "slots",
+      "animationSpans": [
+        [
+          229,
+          235
+        ],
+        [
+          247,
+          254
+        ],
+        [
+          263,
+          267
+        ],
+        [
+          278,
+          284
+        ],
+        [
+          297,
+          305
+        ],
+        [
+          314,
+          318
+        ],
+        [
+          332,
+          341
+        ],
+        [
+          354,
+          362
+        ],
+        [
+          374,
+          381
+        ],
+        [
+          431,
+          437
+        ],
+        [
+          448,
+          456
+        ],
+        [
+          480,
+          490
+        ],
+        [
+          523,
+          529
+        ]
+      ]
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": 0,
+      "css": 1
+    },
+    "snapshot_group": "style"
+  },
+  {
+    "id": "regression_keyword_sloppy",
+    "file": "regression-keyword-sloppy.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "InlineClassic"
+      ],
+      "check": "keyword-sloppy"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": 0,
+      "css": 0,
+      "scriptVars": true,
+      "wrappers": 1,
+      "grammar": {
+        "kind": "classic",
+        "code": "(function(){const yield=null;const await=null;const implements=null;yield;implements;})();",
+        "valid": true
+      }
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "regression_keyword_prefix_strict",
+    "file": "regression-keyword-prefix-strict.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "InlineClassic"
+      ],
+      "check": "keyword-prefix-strict"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": 0,
+      "css": 0,
+      "scriptVars": true,
+      "wrappers": 1,
+      "grammar": {
+        "kind": "classic",
+        "code": "(function(){const yield=null;\"use strict\";yield;})();",
+        "valid": true
+      }
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "regression_keyword_effective_strict",
+    "file": "regression-keyword-effective-strict.astro",
+    "atlas": {
+      "error": true,
+      "modes": [
+        "InlineClassic"
+      ],
+      "check": "semantic-error"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": 0,
+      "css": 0,
+      "scriptVars": true,
+      "wrappers": 1,
+      "grammar": {
+        "kind": "classic",
+        "code": "(function(){\"use strict\";yield;})();",
+        "valid": false
+      }
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "regression_keyword_module",
+    "file": "regression-keyword-module.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "InlineModule"
+      ],
+      "check": "keyword-invalid"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": 0,
+      "css": 0,
+      "scriptVars": true,
+      "wrappers": 0,
+      "grammar": {
+        "kind": "module",
+        "code": "const yield=null;const await=null;const implements=null;",
+        "valid": false
+      }
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "regression_keyword_reserved",
+    "file": "regression-keyword-reserved.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "InlineClassic"
+      ],
+      "check": "keyword-invalid"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": 0,
+      "css": 0,
+      "scriptVars": true,
+      "wrappers": 1,
+      "grammar": {
+        "kind": "classic",
+        "code": "(function(){const class=null;})();",
+        "valid": false
+      }
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "regression_unicode_css_error",
+    "file": "regression-unicode-css-error.astro",
+    "atlas": {
+      "error": true,
+      "modes": [],
+      "check": "css-error"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": 0,
+      "css": 1
+    },
+    "snapshot_group": "style"
+  },
+  {
+    "id": "regression_semantic_error",
+    "file": "regression-semantic-error.astro",
+    "atlas": {
+      "error": true,
+      "modes": [],
+      "check": "semantic-error"
+    },
+    "compiler": {
+      "parseError": false
+    },
+    "snapshot_group": "template"
+  },
+  {
+    "id": "regression_animation_vars",
+    "file": "regression-animation-vars.astro",
+    "atlas": {
+      "error": false,
+      "modes": [],
+      "check": "animation-vars",
+      "animationSpans": [
+        [
+          94,
+          98
+        ],
+        [
+          134,
+          140
+        ],
+        [
+          154,
+          160
+        ],
+        [
+          177,
+          183
+        ],
+        [
+          199,
+          203
+        ],
+        [
+          216,
+          222
+        ],
+        [
+          233,
+          237
+        ]
+      ]
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": 0,
+      "css": 1
+    },
+    "snapshot_group": "style"
+  },
+  {
+    "id": "regression_html_close_comment",
+    "file": "regression-html-close-comment.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "InlineClassic"
+      ],
+      "check": "html-close-comment"
+    },
+    "compiler": {
+      "parseError": true,
+      "scripts": 0,
+      "css": 0,
+      "scriptVars": false,
+      "wrappers": 0,
+      "grammar": {
+        "kind": "classic",
+        "code": "(function(){const x=null;\n--> comment\nconst local=2;x;local;})();",
+        "valid": true
+      }
+    },
+    "snapshot_group": "script"
+  },
+  {
+    "id": "regression_css_continuation_ls",
+    "file": "regression-css-continuation-ls.astro",
+    "atlas": {
+      "error": false,
+      "modes": [],
+      "check": "css-continuation"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": 0,
+      "css": 0
+    },
+    "snapshot_group": "style"
+  },
+  {
+    "id": "regression_css_continuation_ps",
+    "file": "regression-css-continuation-ps.astro",
+    "atlas": {
+      "error": false,
+      "modes": [],
+      "check": "css-continuation"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": 0,
+      "css": 0
+    },
+    "snapshot_group": "style"
+  },
+  {
+    "id": "regression_injected_whitespace",
+    "file": "regression-injected-whitespace.astro",
+    "atlas": {
+      "error": false,
+      "modes": [
+        "InlineClassic"
+      ],
+      "check": "injected-whitespace"
+    },
+    "compiler": {
+      "parseError": false,
+      "scripts": 0,
+      "css": 0,
+      "scriptVars": true,
+      "wrappers": 1
+    },
+    "snapshot_group": "script"
+  }
+]

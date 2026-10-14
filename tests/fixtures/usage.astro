@@ -1,0 +1,13 @@
+---
+import Counter from './Counter.astro';
+const markup = "<Counter client:visible />";
+// <Counter client:idle />
+---
+<!-- <Counter client:load /> -->
+{ /* <Counter client:only /> */ }
+{"<Counter />"}
+{markup}
+<div data-example="Counter"><counter /></div>
+<Counter client:visible client:idle client:visible custom:flag="yes"></Counter>
+<Counter client:only="react" />
+<Counter />

@@ -1,0 +1,24 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [],
+  "declarations": [],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[{"literal":{"String":"--tone:red;content:\"😀&和文\";color:var(--tone)"},"name":"style","name_span":[5,10],"span":[5,77],"spread":false,"value":{"kind":"String","raw":"\"--tone:red;content:&quot;😀&amp;和文&quot;;color:var(--tone)\"","span":[11,77]}}],"closing_span":null,"directives":[],"id":"e0","kind":"Html","name":"div","name_span":[1,4],"opening_span":[0,79],"parent":null,"reference":null,"slot":null,"span":[0,79],"text":[]},
+    {"attributes":[{"literal":{"String":"--tone:blue;color:var(--tone)"},"name":"style","name_span":[84,89],"span":[84,123],"spread":false,"value":{"kind":"Expression","raw":"{\"--tone:blue;color:var(--tone)\"}","span":[90,123]}}],"closing_span":null,"directives":[],"id":"e1","kind":"Html","name":"div","name_span":[80,83],"opening_span":[79,125],"parent":null,"reference":null,"slot":null,"span":[79,125],"text":[]}
+  ],
+  "imports": [],
+  "references": [],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,125]}
+  ],
+  "scripts": [],
+  "styles": [
+    {"content":{"raw":"\"--tone:red;content:&quot;😀&amp;和文&quot;;color:var(--tone)\"","span":[11,77]},"css":{"declarations":[{"id":"decl0","important":false,"name":"--tone","name_span":[12,18],"rule":null,"span":[12,23],"value":{"raw":"red","span":[19,22]}},{"id":"decl1","important":false,"name":"content","name_span":[23,30],"rule":null,"span":[23,59],"value":{"raw":"&quot;😀&amp;和文&quot;","span":[31,58]}},{"id":"decl2","important":false,"name":"color","name_span":[59,64],"rule":null,"span":[59,76],"value":{"raw":"var(--tone)","span":[65,76]}}],"definitions":[{"conditions":[],"declaration":"decl0","kind":"CustomProperty","name":"--tone","span":[12,18]}],"dependencies":[],"references":[{"candidates":[{"definition":0,"style":"style0"},{"definition":0,"style":"style1"}],"fallback":null,"kind":"CustomProperty","name":"--tone","runtime_dependent":true,"span":[69,75]}],"rules":[]},"dynamic_injection":false,"element":"e0","id":"style0","injected":[],"inline_attribute":true,"language":"css","mode":"Inline","span":[5,77]},
+    {"content":{"raw":"\"--tone:blue;color:var(--tone)\"","span":[91,122]},"css":{"declarations":[{"id":"decl0","important":false,"name":"--tone","name_span":[92,98],"rule":null,"span":[92,104],"value":{"raw":"blue","span":[99,103]}},{"id":"decl1","important":false,"name":"color","name_span":[104,109],"rule":null,"span":[104,121],"value":{"raw":"var(--tone)","span":[110,121]}}],"definitions":[{"conditions":[],"declaration":"decl0","kind":"CustomProperty","name":"--tone","span":[92,98]}],"dependencies":[],"references":[{"candidates":[{"definition":0,"style":"style0"},{"definition":0,"style":"style1"}],"fallback":null,"kind":"CustomProperty","name":"--tone","runtime_dependent":true,"span":[114,120]}],"rules":[]},"dynamic_injection":false,"element":"e1","id":"style1","injected":[],"inline_attribute":true,"language":"css","mode":"Inline","span":[84,123]}
+  ]
+}}
