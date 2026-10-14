@@ -19,9 +19,11 @@ lightningcss = { version = "=1.0.0-alpha.72", default-features = false, features
 cssparser = "=0.37.0"
 html-escape = "=0.2.13"
 serde = { version = "1.0", features = ["derive"], optional = true }
+salsa = { version = "=0.28.5", optional = true, default-features = false, features = ["macros", "inventory"] }
 
 [features]
 serde = ["dep:serde"]
+incremental = ["dep:salsa"]
 
 [dev-dependencies]
 serde = { version = "1.0", features = ["derive"] }
