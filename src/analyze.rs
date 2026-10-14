@@ -81,6 +81,7 @@ pub fn analyze(source: &str) -> Result<FileFacts, AnalysisError> {
             })
             .collect();
     }
+    crate::css::analyze_styles(source, &mut facts)?;
     crate::validate::validate(&mut facts);
     canonicalize(&mut facts);
     Ok(facts)
