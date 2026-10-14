@@ -1,0 +1,7 @@
+tests/fixtures/*.astro text eol=lf
+tests/fixtures/positions.astro -text
+
+# Preserve exact byte offsets in the CRLF conformance fixture.
+tests/spec/unicode-crlf.astro -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
+tests/spec/regression-unicode-css-error.astro -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
