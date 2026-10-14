@@ -1,0 +1,78 @@
+# Single-file specification coverage
+
+The release target is Astro **7.0.6**, with the published **@astrojs/compiler-rs 0.3.0** package as a reproducible syntax/transform oracle. This matrix defines the analysis contract; it does not claim to implement the Astro runtime or every project-level feature. Every supported row names a Rust test or a pinned compiler fixture. Results below were measured, not inferred solely from upstream code.
+
+## Status and error contract
+
+- **Supported**: owned facts and original UTF-8 byte spans are tested.
+- **Dynamic**: expressions and references are preserved; evaluation is not attempted.
+- **Project required**: renderer/import/configuration information is absent from a single source.
+- **Out of scope**: compilation, type checking, rendering, runtime APIs, and CSS cascade evaluation.
+
+`analyze` returns `Err` for parser, semantic syntax, or standard-CSS syntax errors. Parsing errors gate semantic analysis. Astro validity diagnostics are in successful facts, with phase, severity, code and owned labels. Undefined identifiers are references, not syntax errors. A successful result may have Astro error diagnostics. Known directives receive Valid, Invalid, Dynamic or RequiresProjectContext status. Custom directives remain UnknownDirective; this is not an assertion that a configured project rejects them.
+
+IDs index their containing arrays, and do not correspond to Oxc's numeric IDs. Declaration and scope IDs are file-local; CSS rule/declaration IDs are style-local. References are ordered by source position. Elements retain tree traversal order and parent IDs; styles retain element/attribute traversal order. Raw source text and spans always use the original input, including decoded CSS attributes.
+
+## Coverage matrix
+
+All rows marked Supported below passed. Rust tests are in [spec.rs](../tests/spec.rs), unless another suite is named. Compiler fixtures are in [tests/spec](../tests/spec).
+
+| Feature | Expected and measured result | Status / boundary | Reproduction |
+| --- | --- | --- | --- |
+| Frontmatter, empty files, no frontmatter | Server scopes and owned declarations/references; empty files accepted | Supported; JS/TS grammar delegated to pinned Oxc | `all_references_scopes_types_and_declarations_are_owned`; phase-1 empty-file test; `empty`, `types-await` fixtures |
+| Default, aliased named, namespace, side-effect and type imports | Import source and form, local binding, type-only marker; shadowing resolves to different IDs | Supported; imported files not opened | `file_facts::imports_include_aliases_types_namespace_and_side_effects`; phase-1 import test |
+| Variables, destructuring, functions, parameters, classes and TS declarations | Scope parents, declaration identities, Value/Type/ValueAndType references | Supported; no TS type inference | `all_references_scopes_types_and_declarations_are_owned`; `receivers_type_scopes_and_module_expression_attributes_are_explicit` |
+| Component names, members and closing tags | One component use per element; member root resolves to declaration; opening and closing spans retained | Supported; property values not evaluated | phase-1 member/import/shadowing tests; `members`, `components` fixtures |
+| HTML, custom elements, fragments, attributes, spreads, duplicates | Every element and attribute retained with spans, values, literals, parent links | Supported; attribute spread contents are Dynamic | `every_template_element_attributes_spreads_fragments_and_slots_are_kept`; `attributes`, `html` fixtures |
+| Expressions, arrays, objects, IIFEs, async/await | References retained in nested expressions; nested scripts discovered independently | Supported; branch conditions not evaluated | `script_discovery_covers_array_object_and_iife_return_expressions`; `expressions`, `types-await` fixtures |
+| `this`, `super`, dynamic tags | Receiver references are RuntimeDependent; variable-backed components retain lexical root identity | Dynamic; receiver object and tag value not evaluated | `receivers_type_scopes_and_module_expression_attributes_are_explicit`; `dynamic_tags_cannot_be_used_for_client_hydration` |
+| `Astro`, `Astro.self`, `Fragment` | Unshadowed builtins recorded, static API member paths retained; local Fragment shadows builtin | Supported; API behavior and TS signatures out of scope | `astro_self_and_fragment_are_builtins_but_local_fragment_can_shadow`; `astro_members_are_recorded_and_unknown_members_are_diagnosed`; `api` fixture |
+| Astro props, params, url, request, response, cookies, locals, slots, session, cache, csp, actions, locale and route APIs | Root reference and static member paths recorded; unknown first member warned | Supported facts; context and values Project required | `api`, `types-await` fixtures; Astro-member Rust test |
+| Named/default slots, fallback, Fragment slot assignments | Slot attributes, dynamic names and fallback text retained | Supported facts; receiving component and slot rendering Project required | `every_template_element_attributes_spreads_fragments_and_slots_are_kept`; `fragments-slots` fixture |
+| `class:list`, `set:html`, `set:text` | Literal form, source and references retained; dynamic expressions not executed | Supported facts / Dynamic values; DOM/serialization out of scope | `attributes`, `set-directives` fixtures |
+| `client:load`, `idle`, `visible`, `media`, `only` | Component requirement, dynamic-tag restriction and static media string checked; directive values retained | Supported basic diagnostics; renderer, component kind and option schemas Project required | `static_directive_violations_are_diagnostics_and_dynamic_values_are_kept`; `components`, `attributes`, `unicode-crlf` fixtures |
+| Custom `client:*` and other namespace attributes | Preserved, classified RequiresProjectContext or UnknownDirective | Project required; no registration lookup | same directive test; `attributes`, `unknown-components` fixtures |
+| `server:defer` | Component target checked; attributes and refs preserved | Supported basic diagnostics; server islands and adapter Project required | directive Rust test; `server-transitions` fixture |
+| `transition:name`, `animate`, `persist`, `persist-props` | Names, literal/custom animation values and expressions retained; static name type checked | Supported basic facts; navigation/persistence runtime out of scope | `attributes`, `server-transitions` fixtures |
+| `is:raw`, comments, strings, raw script data | Raw text never becomes fake component uses or JS refs | Supported | `raw_children_comments_and_strings_never_create_uses_or_references`; `raw`, `data` fixtures |
+| Processed scripts and external src | Independent TS/module domain and bundling eligibility; external src preserved without fetching it | Supported; external file Project required | `processed_inline_module_classic_external_data_and_dynamic_modes`; `processed`, `external` fixtures |
+| `type="module"` and spread attributes | Literal type alone is eligible for bundling in 0.3.0; expression type is inline JS module | Supported, release-specific | `module-hoisted`, `module-expression`, `module-spread`, `external-module` fixtures |
+| `is:inline`, other attrs, classic JS and inline module JS | Separate JS parses; invalid browser TS/imports produce errors | Supported; globals not equated with server bindings | script-mode Rust test; `classic`, `inline-module`, `defer`, `invalid-browser-ts` fixtures |
+| `svg`, `noscript`, `template` boundaries | Script bodies use browser JS; literal external sources remain External/JavaScript; styles stay inline | Supported | `scripts_in_non_hoistable_context_are_browser_javascript`; `nonhoistable` fixture |
+| Data and dynamic script type | Data body raw; unresolved dynamic type marked Unknown, not parsed as JS | Supported descriptor / Dynamic behavior | script-mode Rust test; `data`, `dynamic-type` fixtures |
+| Classic-script globals | Another script's matching root declarations are runtime candidates; no definite cross-script binding | Dynamic | `inline_classic_globals_are_candidates_not_definite_lexical_bindings` |
+| Script `define:vars` aliases, shorthand, computed literal keys, normalization | New injected IDs and key/value/origin-reference spans; nested parameters shadow injection | Supported static keys; dynamic keys/spreads unknown | `define_vars_aliases_keys_and_nested_shadowing_have_distinct_identity`; phase-1 define-vars test; `injection` fixture |
+| Injection redeclarations, duplicate and invalid keys | Same-scope collisions produce semantic errors; duplicate object keys use final value; invalid normalized keys produce Astro diagnostics | Supported static keys; expression serialization not executed | `define_vars_static_collision_is_an_error_and_dynamic_keys_remain_unknown`; `define_vars_duplicate_and_computed_literal_keys_follow_object_semantics` |
+| Scoped/global/inline styles, language attrs and style attributes | Mode, original content and language retained; standard CSS parsed | Supported | `style_modes_preprocessors_and_dynamic_style_values_are_explicit`; `styles`, `inline-css` fixtures |
+| SCSS, Sass, Less, dynamic lang, dynamic style objects | Original expression/language retained, no false standard-CSS syntax error | Dynamic / out of scope for preprocessor execution | style-mode/receiver Rust tests; `styles` fixture |
+| Style `define:vars` | Effective extracted styles retain custom-property injection names, original key/value and server refs; inline/non-hoistable styles retain attributes without injected definitions | Supported static keys; dynamic injection flagged | `css_custom_properties_registrations_keyframes_urls_fallbacks_and_injection`; `style-injection` fixture |
+| CSS style, keyframe and at-rules | Parent rules, selectors, nesting, conditions and original preludes retained | Supported; selector matching/cascade out of scope | `css_rules_selectors_duplicate_declarations_important_conditions_and_nesting`; `css-nesting` fixture |
+| CSS declarations | Source order, duplicate names and `!important` retained without optimization | Supported; no minification/code generation | same CSS-rules test |
+| CSS custom properties, `@property`, `var()` and fallback | Definitions and reference candidates, nested and empty fallback retained; comments/strings ignored | Supported candidates, always runtime-dependent | CSS custom-property and comment/string tests |
+| CSS keyframes and animation values | Keyframe definitions, step rules and animation-name candidates retained, including quoted/repeated keywords and conservative candidates in variable-containing values | Supported; runtime animation value not selected | `animation_names_with_keyword_spellings_and_keyframe_steps_are_kept` |
+| CSS `@import` and `url()` | Dependency spelling and original spans retained | Supported facts; external resources not fetched | CSS custom-property dependency test |
+| CSS token escapes and conditions | Decoded identifiers match definition candidates; raw escaped spans retained | Supported | `css_escaped_names_conditions_and_cross_style_candidates_keep_raw_positions` |
+| Unicode, emoji, CRLF, entities and JS escapes | All tested spans reconstruct original input, including CSS syntax labels | Supported; no source rewriting | CSS span/error tests; phase-1/phase-2 spans; `unicode-crlf`, `inline-css` fixtures |
+| Malformed input vs unresolved identifiers | Syntax Err, semantic gated; undefined tag remains Ok/Unresolved | Supported | phase-1 malformed/undefined tests; `invalid-*` fixtures |
+| Routing, collections, middleware, integrations, custom renderers/directives, actions, adapters | Expressions/imports remain available as facts | Project required; no project graph or config execution | Contract boundary; no runtime implementation |
+| TS checking, rendering, runtime APIs, browser DOM, CSS cascade, preprocessors, CLI, Salsa | Not implemented | Out of scope | Contract boundary |
+
+## Fixed-release differences
+
+1. compiler-rs 0.3.0 emits three `renderScript` calls for scripts in array/object/IIFE return expressions, but its extracted `scripts` array is empty. The named `nested-script-extraction` manifest case asserts this exact official output and atlas's three independent script facts. It is not ignored. `Script.bundled` expresses eligibility, not proof of successful upstream extraction.
+2. `type="module"` alone is processed/hoisted by this release. `type={"module"}` and `type="module" src="..."` are not. Documentation's general extra-attribute rule is therefore insufficient for the pinned release.
+3. HTML5 unquoted values include `/` in `<input value=4/>`, so its value is `4/`. `<Comp value= />` has a `/` value followed by an unclosed component, with an EOF diagnostic. Atlas follows the official package and upstream implementation. Two stale Oxc test expectations were updated, rather than changing this grammar. See [HTML tokenization](https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(unquoted)-state).
+4. The official transform accepts dynamic slot names and several invalid directive values without diagnostics. Atlas preserves dynamic names and applies the documented basic static target/value checks; it does not attempt to match compiler omissions in diagnostic counts.
+
+The shared catalog, owned-result snapshots, regression assertions, and compiler/JavaScript grammar evidence are described in [testing.md](testing.md). The catalog includes all AST semantic fixtures as well as the specification and regression fixtures. Bare and expression-valued bundled `src` bodies are processed; only literal bundled sources are external.
+
+Classic `define:vars` scripts are isolated even when no bindings can be extracted, and can still read runtime candidates supplied by ordinary classic scripts. Their generated declarations precede the body, so a later `"use strict"` string is not a directive. Empty injections preserve effective directive prologues. A newline before the original body preserves classic HTML-close line comments. Module bindings are validated with module grammar.
+
+The native compiler's Astro parse rejects a top-level `return` and an opening-line `-->` comment in the two classic wrapper fixtures. Atlas models the generated IIFE grammar, which Node's syntax-only checks accept. Conversely, the compiler accepts the empty-injection strict-body fixture whose generated classic wrapper has a reserved `yield` identifier. These parser/grammar results are asserted separately in the manifest; no runtime execution or dependency patch is involved.
+
+## Sources and reproducibility
+
+- [Astro 7.0.6 source](https://github.com/withastro/astro/tree/dbe9144e55ccbe4cccac53abef60d8a41509178f), including public attribute types and `defineScriptVars` normalization.
+- [Astro syntax](https://docs.astro.build/en/basics/astro-syntax/), [directives](https://docs.astro.build/en/reference/directives-reference/), [scripts](https://docs.astro.build/en/guides/client-side-scripts/), [styling](https://docs.astro.build/en/guides/styling/). These are supporting current documentation; release-specific behavior is checked using the pinned package.
+- [Lightning CSS](https://github.com/parcel-bundler/lightningcss) parses typed stylesheet/declaration values for syntax validation. cssparser supplies lossless tokens for ordered facts and source maps. Unknown property values remain raw rather than being classified as computed CSS.
+- `npm ci --ignore-scripts && npm run test:conformance` builds only the test serializer and checks 83 registered sources. Node is not a library runtime dependency. `cargo test --locked --all-targets` runs the owned semantic/CSS assertions without Node.
