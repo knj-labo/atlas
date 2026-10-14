@@ -1,0 +1,25 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [],
+  "declarations": [],
+  "diagnostics": [
+    {"code":"astro/invalid-injected-name","labels":[{"message":null,"span":[22,27]}],"message":"define:vars key \"class\" produces an invalid JavaScript identifier","phase":"Astro","severity":"Error"}
+  ],
+  "elements": [
+    {"attributes":[{"literal":{"Object":[["class",{"Number":"1"}]]},"name":"define:vars","name_span":[8,19],"span":[8,31],"spread":false,"value":{"kind":"Expression","raw":"{{class:1}}","span":[20,31]}}],"closing_span":[32,41],"directives":[{"name":"define:vars","name_span":[8,19],"span":[8,31],"status":"Valid","value":{"kind":"Expression","raw":"{{class:1}}","span":[20,31]}}],"id":"e0","kind":"Script","name":"script","name_span":[1,7],"opening_span":[0,32],"parent":null,"reference":null,"slot":null,"span":[0,41],"text":[]}
+  ],
+  "imports": [],
+  "references": [],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,42]},
+    {"domain":"InjectedScript","id":"s1","kind":"Root","parent":null,"span":[32,32]}
+  ],
+  "scripts": [
+    {"bundled":false,"content":{"raw":"","span":[32,32]},"dynamic_injection":false,"element":"e0","injected":[],"language":"JavaScript","mode":"InlineClassic","references":[],"source":null,"span":[0,41]}
+  ],
+  "styles": []
+}}

@@ -1,0 +1,45 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [
+    {"builtin":"Astro","member":null,"span":[16,21]},
+    {"builtin":"Astro","member":"props","span":[16,27]},
+    {"builtin":"Astro","member":null,"span":[39,44]},
+    {"builtin":"Astro","member":"url","span":[39,48]},
+    {"builtin":"Astro","member":null,"span":[63,68]},
+    {"builtin":"Astro","member":"locals","span":[63,75]},
+    {"builtin":"Astro","member":null,"span":[82,87]},
+    {"builtin":"Astro","member":"slots","span":[82,93]},
+    {"builtin":"Astro","member":"slots.has","span":[82,97]},
+    {"builtin":"Astro","member":null,"span":[112,117]},
+    {"builtin":"AstroSelf","member":"self","span":[112,122]}
+  ],
+  "components": [
+    {"closing_name_span":null,"directives":[],"element":"e0","name":"Astro.self","name_span":[112,122],"reference":"r4","span":[111,125]}
+  ],
+  "declarations": [
+    {"id":"d0","import":null,"injection":null,"kind":"Variable","name":"props","scope":"s0","span":[10,15]},
+    {"id":"d1","import":null,"injection":null,"kind":"Variable","name":"url","scope":"s0","span":[35,38]},
+    {"id":"d2","import":null,"injection":null,"kind":"Variable","name":"locals","scope":"s0","span":[56,62]}
+  ],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[],"closing_span":null,"directives":[],"id":"e0","kind":"SelfComponent","name":"Astro.self","name_span":[112,122],"opening_span":[111,125],"parent":null,"reference":"r4","slot":null,"span":[111,125],"text":[]},
+    {"attributes":[],"closing_span":null,"directives":[],"id":"e1","kind":"Slot","name":"slot","name_span":[127,131],"opening_span":[126,133],"parent":null,"reference":null,"slot":null,"span":[126,133],"text":[]}
+  ],
+  "imports": [],
+  "references": [
+    {"id":"r0","kind":"Value","name":"Astro","resolution":{"Builtin":"Astro"},"scope":"s0","span":[16,21]},
+    {"id":"r1","kind":"Value","name":"Astro","resolution":{"Builtin":"Astro"},"scope":"s0","span":[39,44]},
+    {"id":"r2","kind":"Value","name":"Astro","resolution":{"Builtin":"Astro"},"scope":"s0","span":[63,68]},
+    {"id":"r3","kind":"Value","name":"Astro","resolution":{"Builtin":"Astro"},"scope":"s0","span":[82,87]},
+    {"id":"r4","kind":"Value","name":"Astro","resolution":{"Builtin":"Astro"},"scope":"s0","span":[112,117]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,133]}
+  ],
+  "scripts": [],
+  "styles": []
+}}

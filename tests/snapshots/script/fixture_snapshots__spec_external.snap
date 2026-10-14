@@ -1,0 +1,22 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [],
+  "declarations": [],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[{"literal":{"String":"./app.ts"},"name":"src","name_span":[8,11],"span":[8,22],"spread":false,"value":{"kind":"String","raw":"\"./app.ts\"","span":[12,22]}}],"closing_span":[23,32],"directives":[],"id":"e0","kind":"Script","name":"script","name_span":[1,7],"opening_span":[0,23],"parent":null,"reference":null,"slot":null,"span":[0,32],"text":[]}
+  ],
+  "imports": [],
+  "references": [],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,32]}
+  ],
+  "scripts": [
+    {"bundled":true,"content":{"raw":"","span":[23,23]},"dynamic_injection":false,"element":"e0","injected":[],"language":"TypeScript","mode":"External","references":[],"source":{"kind":"String","raw":"\"./app.ts\"","span":[12,22]},"span":[0,32]}
+  ],
+  "styles": []
+}}

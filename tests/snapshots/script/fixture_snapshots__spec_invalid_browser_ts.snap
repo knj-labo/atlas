@@ -1,0 +1,10 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Err": {
+  "diagnostics": [
+    {"code":null,"labels":[{"message":null,"span":[23,23]}],"message":"Expected a semicolon or an implicit semicolon after a statement, but found none","phase":"Parser","severity":"Error"}
+  ],
+  "parser_panicked": true
+}}

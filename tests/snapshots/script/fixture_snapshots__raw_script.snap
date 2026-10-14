@@ -1,0 +1,22 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [],
+  "declarations": [],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[{"literal":{"String":"application/json"},"name":"type","name_span":[8,12],"span":[8,31],"spread":false,"value":{"kind":"String","raw":"\"application/json\"","span":[13,31]}}],"closing_span":[70,79],"directives":[],"id":"e0","kind":"Script","name":"script","name_span":[1,7],"opening_span":[0,32],"parent":null,"reference":null,"slot":null,"span":[0,79],"text":[{"raw":"{\"component\":\"<Counter />\", \"value\": }","span":[32,70]}]}
+  ],
+  "imports": [],
+  "references": [],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,80]}
+  ],
+  "scripts": [
+    {"bundled":false,"content":{"raw":"{\"component\":\"<Counter />\", \"value\": }","span":[32,70]},"dynamic_injection":false,"element":"e0","injected":[],"language":"Raw","mode":"Data","references":[],"source":null,"span":[0,79]}
+  ],
+  "styles": []
+}}

@@ -1,0 +1,23 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [],
+  "declarations": [],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[{"literal":{"Object":[]},"name":"define:vars","name_span":[8,19],"span":[8,24],"spread":false,"value":{"kind":"Expression","raw":"{{}}","span":[20,24]}}],"closing_span":[32,41],"directives":[{"name":"define:vars","name_span":[8,19],"span":[8,24],"status":"Valid","value":{"kind":"Expression","raw":"{{}}","span":[20,24]}}],"id":"e0","kind":"Script","name":"script","name_span":[1,7],"opening_span":[0,25],"parent":null,"reference":null,"slot":null,"span":[0,41],"text":[]}
+  ],
+  "imports": [],
+  "references": [],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,42]},
+    {"domain":"InjectedScript","id":"s1","kind":"Root","parent":null,"span":[25,32]}
+  ],
+  "scripts": [
+    {"bundled":false,"content":{"raw":"return;","span":[25,32]},"dynamic_injection":false,"element":"e0","injected":[],"language":"JavaScript","mode":"InlineClassic","references":[],"source":null,"span":[0,41]}
+  ],
+  "styles": []
+}}

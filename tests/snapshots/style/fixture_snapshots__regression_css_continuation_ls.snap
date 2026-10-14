@@ -1,0 +1,22 @@
+---
+source: tests/support/snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [],
+  "declarations": [],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[{"literal":{"String":"--tone:red;color:var(--tone)"},"name":"style","name_span":[5,10],"span":[5,47],"spread":false,"value":{"kind":"Expression","raw":"{\"--to\\ ne:red;color:var(--tone)\"}","span":[11,47]}}],"closing_span":null,"directives":[],"id":"e0","kind":"Html","name":"div","name_span":[1,4],"opening_span":[0,49],"parent":null,"reference":null,"slot":null,"span":[0,49],"text":[]}
+  ],
+  "imports": [],
+  "references": [],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,50]}
+  ],
+  "scripts": [],
+  "styles": [
+    {"content":{"raw":"\"--to\\ ne:red;color:var(--tone)\"","span":[12,46]},"css":{"declarations":[{"id":"decl0","important":false,"name":"--tone","name_span":[13,23],"rule":null,"span":[13,28],"value":{"raw":"red","span":[24,27]}},{"id":"decl1","important":false,"name":"color","name_span":[28,33],"rule":null,"span":[28,45],"value":{"raw":"var(--tone)","span":[34,45]}}],"definitions":[{"conditions":[],"declaration":"decl0","kind":"CustomProperty","name":"--tone","span":[13,23]}],"dependencies":[],"references":[{"candidates":[{"definition":0,"style":"style0"}],"fallback":null,"kind":"CustomProperty","name":"--tone","runtime_dependent":true,"span":[38,44]}],"rules":[]},"dynamic_injection":false,"element":"e0","id":"style0","injected":[],"inline_attribute":true,"language":"css","mode":"Inline","span":[5,47]}
+  ]
+}}

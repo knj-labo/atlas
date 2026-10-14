@@ -18,3 +18,7 @@ mod validate;
 
 pub use analyze::analyze;
 pub use facts::*;
+
+#[cfg(test)]
+#[path = "../tests/support/snapshots.rs"]
+mod snapshots;

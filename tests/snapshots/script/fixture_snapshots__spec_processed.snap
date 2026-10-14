@@ -1,0 +1,27 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [],
+  "declarations": [
+    {"id":"d0","import":null,"injection":null,"kind":"Variable","name":"count","scope":"s1","span":[12,17]}
+  ],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[],"closing_span":[34,43],"directives":[],"id":"e0","kind":"Script","name":"script","name_span":[1,7],"opening_span":[0,8],"parent":null,"reference":null,"slot":null,"span":[0,43],"text":[]}
+  ],
+  "imports": [],
+  "references": [
+    {"id":"r0","kind":"Value","name":"count","resolution":{"Resolved":"d0"},"scope":"s1","span":[28,33]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,43]},
+    {"domain":"BrowserModule","id":"s1","kind":"Root","parent":null,"span":[8,34]}
+  ],
+  "scripts": [
+    {"bundled":true,"content":{"raw":"let count:number=1; count;","span":[8,34]},"dynamic_injection":false,"element":"e0","injected":[],"language":"TypeScript","mode":"Processed","references":["r0"],"source":null,"span":[0,43]}
+  ],
+  "styles": []
+}}

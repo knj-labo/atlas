@@ -1,0 +1,29 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [
+    {"closing_name_span":[56,72],"directives":[],"element":"e0","name":"UI.Forms.Counter","name_span":[37,53],"reference":"r0","span":[36,73]}
+  ],
+  "declarations": [
+    {"id":"d0","import":{"source":"./ui","specifier":"Namespace","type_only":false},"injection":null,"kind":"Import","name":"UI","scope":"s0","span":[16,18]}
+  ],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[],"closing_span":[54,73],"directives":[],"id":"e0","kind":"Component","name":"UI.Forms.Counter","name_span":[37,53],"opening_span":[36,54],"parent":null,"reference":"r0","slot":null,"span":[36,73],"text":[]}
+  ],
+  "imports": [
+    {"bindings":[{"name":"UI","span":[16,18],"target":{"source":"./ui","specifier":"Namespace","type_only":false}}],"source":"./ui","source_span":[24,30],"span":[4,31]}
+  ],
+  "references": [
+    {"id":"r0","kind":"Value","name":"UI","resolution":{"Resolved":"d0"},"scope":"s0","span":[37,39]},
+    {"id":"r1","kind":"Value","name":"UI","resolution":{"Resolved":"d0"},"scope":"s0","span":[56,58]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,73]}
+  ],
+  "scripts": [],
+  "styles": []
+}}

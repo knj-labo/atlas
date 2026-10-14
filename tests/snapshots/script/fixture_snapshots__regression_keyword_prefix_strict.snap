@@ -1,0 +1,27 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [],
+  "declarations": [
+    {"id":"d0","import":null,"injection":{"key_span":[22,27],"references":[],"value":{"raw":"1","span":[28,29]}},"kind":"Injected","name":"yield","scope":"s1","span":[22,27]}
+  ],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[{"literal":{"Object":[["yield",{"Number":"1"}]]},"name":"define:vars","name_span":[8,19],"span":[8,31],"spread":false,"value":{"kind":"Expression","raw":"{{yield:1}}","span":[20,31]}}],"closing_span":[51,60],"directives":[{"name":"define:vars","name_span":[8,19],"span":[8,31],"status":"Valid","value":{"kind":"Expression","raw":"{{yield:1}}","span":[20,31]}}],"id":"e0","kind":"Script","name":"script","name_span":[1,7],"opening_span":[0,32],"parent":null,"reference":null,"slot":null,"span":[0,60],"text":[]}
+  ],
+  "imports": [],
+  "references": [
+    {"id":"r0","kind":"Value","name":"yield","resolution":{"Resolved":"d0"},"scope":"s1","span":[45,50]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,61]},
+    {"domain":"InjectedScript","id":"s1","kind":"Root","parent":null,"span":[32,51]}
+  ],
+  "scripts": [
+    {"bundled":false,"content":{"raw":"\"use strict\";yield;","span":[32,51]},"dynamic_injection":false,"element":"e0","injected":["d0"],"language":"JavaScript","mode":"InlineClassic","references":["r0"],"source":null,"span":[0,60]}
+  ],
+  "styles": []
+}}

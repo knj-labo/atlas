@@ -1,0 +1,30 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [],
+  "declarations": [
+    {"id":"d0","import":null,"injection":{"key_span":[22,27],"references":[],"value":{"raw":"1","span":[28,29]}},"kind":"Injected","name":"yield","scope":"s1","span":[22,27]},
+    {"id":"d1","import":null,"injection":{"key_span":[30,35],"references":[],"value":{"raw":"2","span":[36,37]}},"kind":"Injected","name":"await","scope":"s1","span":[30,35]},
+    {"id":"d2","import":null,"injection":{"key_span":[38,48],"references":[],"value":{"raw":"3","span":[49,50]}},"kind":"Injected","name":"implements","scope":"s1","span":[38,48]}
+  ],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[{"literal":{"Object":[["yield",{"Number":"1"}],["await",{"Number":"2"}],["implements",{"Number":"3"}]]},"name":"define:vars","name_span":[8,19],"span":[8,52],"spread":false,"value":{"kind":"Expression","raw":"{{yield:1,await:2,implements:3}}","span":[20,52]}}],"closing_span":[70,79],"directives":[{"name":"define:vars","name_span":[8,19],"span":[8,52],"status":"Valid","value":{"kind":"Expression","raw":"{{yield:1,await:2,implements:3}}","span":[20,52]}}],"id":"e0","kind":"Script","name":"script","name_span":[1,7],"opening_span":[0,53],"parent":null,"reference":null,"slot":null,"span":[0,79],"text":[]}
+  ],
+  "imports": [],
+  "references": [
+    {"id":"r0","kind":"Value","name":"yield","resolution":{"Resolved":"d0"},"scope":"s1","span":[53,58]},
+    {"id":"r1","kind":"Value","name":"implements","resolution":{"Resolved":"d2"},"scope":"s1","span":[59,69]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,80]},
+    {"domain":"InjectedScript","id":"s1","kind":"Root","parent":null,"span":[53,70]}
+  ],
+  "scripts": [
+    {"bundled":false,"content":{"raw":"yield;implements;","span":[53,70]},"dynamic_injection":false,"element":"e0","injected":["d0","d1","d2"],"language":"JavaScript","mode":"InlineClassic","references":["r0","r1"],"source":null,"span":[0,79]}
+  ],
+  "styles": []
+}}

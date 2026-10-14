@@ -1,0 +1,31 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [],
+  "declarations": [
+    {"id":"d0","import":null,"injection":null,"kind":"Variable","name":"shared","scope":"s1","span":[22,28]},
+    {"id":"d1","import":null,"injection":{"key_span":[62,68],"references":[],"value":{"raw":"2","span":[69,70]}},"kind":"Injected","name":"shared","scope":"s2","span":[62,68]}
+  ],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[{"literal":{"Boolean":true},"name":"is:inline","name_span":[8,17],"span":[8,17],"spread":false,"value":null}],"closing_span":[31,40],"directives":[{"name":"is:inline","name_span":[8,17],"span":[8,17],"status":"Valid","value":null}],"id":"e0","kind":"Script","name":"script","name_span":[1,7],"opening_span":[0,18],"parent":null,"reference":null,"slot":null,"span":[0,40],"text":[]},
+    {"attributes":[{"literal":{"Object":[["shared",{"Number":"2"}]]},"name":"define:vars","name_span":[48,59],"span":[48,72],"spread":false,"value":{"kind":"Expression","raw":"{{shared:2}}","span":[60,72]}}],"closing_span":[80,89],"directives":[{"name":"define:vars","name_span":[48,59],"span":[48,72],"status":"Valid","value":{"kind":"Expression","raw":"{{shared:2}}","span":[60,72]}}],"id":"e1","kind":"Script","name":"script","name_span":[41,47],"opening_span":[40,73],"parent":null,"reference":null,"slot":null,"span":[40,89],"text":[]}
+  ],
+  "imports": [],
+  "references": [
+    {"id":"r0","kind":"Value","name":"shared","resolution":{"Resolved":"d1"},"scope":"s2","span":[73,79]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,90]},
+    {"domain":"BrowserClassic","id":"s1","kind":"Root","parent":null,"span":[18,31]},
+    {"domain":"InjectedScript","id":"s2","kind":"Root","parent":null,"span":[73,80]}
+  ],
+  "scripts": [
+    {"bundled":false,"content":{"raw":"var shared=1;","span":[18,31]},"dynamic_injection":false,"element":"e0","injected":[],"language":"JavaScript","mode":"InlineClassic","references":[],"source":null,"span":[0,40]},
+    {"bundled":false,"content":{"raw":"shared;","span":[73,80]},"dynamic_injection":false,"element":"e1","injected":["d1"],"language":"JavaScript","mode":"InlineClassic","references":["r0"],"source":null,"span":[40,89]}
+  ],
+  "styles": []
+}}

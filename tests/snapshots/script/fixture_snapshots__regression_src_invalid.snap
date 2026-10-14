@@ -1,0 +1,10 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Err": {
+  "diagnostics": [
+    {"code":null,"labels":[{"message":null,"span":[27,28]}],"message":"Unexpected token","phase":"Parser","severity":"Error"}
+  ],
+  "parser_panicked": true
+}}

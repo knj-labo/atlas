@@ -1,0 +1,24 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [
+    {"closing_name_span":null,"directives":[],"element":"e0","name":"this.Widget","name_span":[1,12],"reference":"r0","span":[0,15]}
+  ],
+  "declarations": [],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[],"closing_span":null,"directives":[],"id":"e0","kind":"Dynamic","name":"this.Widget","name_span":[1,12],"opening_span":[0,15],"parent":null,"reference":"r0","slot":null,"span":[0,15],"text":[]}
+  ],
+  "imports": [],
+  "references": [
+    {"id":"r0","kind":"Receiver","name":"this","resolution":{"RuntimeDependent":{"candidates":[],"reason":"receiver depends on the calling context"}},"scope":"s0","span":[1,5]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,15]}
+  ],
+  "scripts": [],
+  "styles": []
+}}

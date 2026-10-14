@@ -1,0 +1,27 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [],
+  "declarations": [],
+  "diagnostics": [
+    {"code":"astro/invalid-injected-name","labels":[{"message":null,"span":[36,41]}],"message":"define:vars key \"yield\" produces an invalid JavaScript identifier","phase":"Astro","severity":"Error"},
+    {"code":"astro/invalid-injected-name","labels":[{"message":null,"span":[44,49]}],"message":"define:vars key \"await\" produces an invalid JavaScript identifier","phase":"Astro","severity":"Error"},
+    {"code":"astro/invalid-injected-name","labels":[{"message":null,"span":[52,62]}],"message":"define:vars key \"implements\" produces an invalid JavaScript identifier","phase":"Astro","severity":"Error"}
+  ],
+  "elements": [
+    {"attributes":[{"literal":{"String":"module"},"name":"type","name_span":[8,12],"span":[8,21],"spread":false,"value":{"kind":"String","raw":"\"module\"","span":[13,21]}},{"literal":{"Object":[["yield",{"Number":"1"}],["await",{"Number":"2"}],["implements",{"Number":"3"}]]},"name":"define:vars","name_span":[22,33],"span":[22,66],"spread":false,"value":{"kind":"Expression","raw":"{{yield:1,await:2,implements:3}}","span":[34,66]}}],"closing_span":[67,76],"directives":[{"name":"define:vars","name_span":[22,33],"span":[22,66],"status":"Valid","value":{"kind":"Expression","raw":"{{yield:1,await:2,implements:3}}","span":[34,66]}}],"id":"e0","kind":"Script","name":"script","name_span":[1,7],"opening_span":[0,67],"parent":null,"reference":null,"slot":null,"span":[0,76],"text":[]}
+  ],
+  "imports": [],
+  "references": [],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,77]},
+    {"domain":"BrowserModule","id":"s1","kind":"Root","parent":null,"span":[67,67]}
+  ],
+  "scripts": [
+    {"bundled":false,"content":{"raw":"","span":[67,67]},"dynamic_injection":false,"element":"e0","injected":[],"language":"JavaScript","mode":"InlineModule","references":[],"source":null,"span":[0,76]}
+  ],
+  "styles": []
+}}

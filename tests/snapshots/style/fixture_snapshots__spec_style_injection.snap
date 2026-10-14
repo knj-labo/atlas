@@ -1,0 +1,26 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [],
+  "declarations": [
+    {"id":"d0","import":null,"injection":null,"kind":"Variable","name":"tone","scope":"s0","span":[10,14]}
+  ],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[{"literal":null,"name":"define:vars","name_span":[33,44],"span":[33,60],"spread":false,"value":{"kind":"Expression","raw":"{{accent:tone}}","span":[45,60]}}],"closing_span":[88,96],"directives":[{"name":"define:vars","name_span":[33,44],"span":[33,60],"status":"Dynamic","value":{"kind":"Expression","raw":"{{accent:tone}}","span":[45,60]}}],"id":"e0","kind":"Style","name":"style","name_span":[27,32],"opening_span":[26,61],"parent":null,"reference":null,"slot":null,"span":[26,96],"text":[{"raw":".a{color:var(--accent,red)}","span":[61,88]}]}
+  ],
+  "imports": [],
+  "references": [
+    {"id":"r0","kind":"Value","name":"tone","resolution":{"Resolved":"d0"},"scope":"s0","span":[54,58]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,96]}
+  ],
+  "scripts": [],
+  "styles": [
+    {"content":{"raw":".a{color:var(--accent,red)}","span":[61,88]},"css":{"declarations":[{"id":"decl0","important":false,"name":"color","name_span":[64,69],"rule":"rule0","span":[64,87],"value":{"raw":"var(--accent,red)","span":[70,87]}}],"definitions":[{"conditions":[],"declaration":null,"kind":"Injected","name":"--accent","span":[47,53]}],"dependencies":[],"references":[{"candidates":[{"definition":0,"style":"style0"}],"fallback":{"raw":"red","span":[83,86]},"kind":"CustomProperty","name":"--accent","runtime_dependent":true,"span":[74,82]}],"rules":[{"conditions":[],"id":"rule0","kind":"Style","parent":null,"prelude":{"raw":".a","span":[61,63]},"selectors":[{"classes":[{"name":"a","span":[62,63]}],"global":false,"ids":[],"nesting":false,"raw":".a","span":[61,63]}],"span":[61,88]}]},"dynamic_injection":false,"element":"e0","id":"style0","injected":[{"name":"--accent","origin":{"key_span":[47,53],"references":["r0"],"value":{"raw":"tone","span":[54,58]}}}],"inline_attribute":false,"language":"css","mode":"Scoped","span":[26,96]}
+  ]
+}}

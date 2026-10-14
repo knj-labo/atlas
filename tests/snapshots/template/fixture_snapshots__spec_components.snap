@@ -1,0 +1,35 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [
+    {"closing_name_span":null,"directives":[{"name":"client:visible","name_span":[66,80],"span":[66,80],"status":"RequiresProjectContext","value":null}],"element":"e0","name":"Counter","name_span":[58,65],"reference":"r0","span":[57,83]},
+    {"closing_name_span":null,"directives":[],"element":"e1","name":"Counter","name_span":[104,111],"reference":"r2","span":[103,114]}
+  ],
+  "declarations": [
+    {"id":"d0","import":{"source":"./Counter","specifier":"Default","type_only":false},"injection":null,"kind":"Import","name":"Counter","scope":"s0","span":[11,18]},
+    {"id":"d1","import":null,"injection":null,"kind":"Variable","name":"items","scope":"s0","span":[43,48]},
+    {"id":"d2","import":null,"injection":null,"kind":"Parameter","name":"Counter","scope":"s1","span":[94,101]}
+  ],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[{"literal":{"Boolean":true},"name":"client:visible","name_span":[66,80],"span":[66,80],"spread":false,"value":null}],"closing_span":null,"directives":[{"name":"client:visible","name_span":[66,80],"span":[66,80],"status":"RequiresProjectContext","value":null}],"id":"e0","kind":"Component","name":"Counter","name_span":[58,65],"opening_span":[57,83],"parent":null,"reference":"r0","slot":null,"span":[57,83],"text":[]},
+    {"attributes":[],"closing_span":null,"directives":[],"id":"e1","kind":"Dynamic","name":"Counter","name_span":[104,111],"opening_span":[103,114],"parent":null,"reference":"r2","slot":null,"span":[103,114],"text":[]}
+  ],
+  "imports": [
+    {"bindings":[{"name":"Counter","span":[11,18],"target":{"source":"./Counter","specifier":"Default","type_only":false}}],"source":"./Counter","source_span":[24,35],"span":[4,36]}
+  ],
+  "references": [
+    {"id":"r0","kind":"Value","name":"Counter","resolution":{"Resolved":"d0"},"scope":"s0","span":[58,65]},
+    {"id":"r1","kind":"Value","name":"items","resolution":{"Resolved":"d1"},"scope":"s0","span":[84,89]},
+    {"id":"r2","kind":"Value","name":"Counter","resolution":{"Resolved":"d2"},"scope":"s1","span":[104,111]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,116]},
+    {"domain":"Server","id":"s1","kind":"Function","parent":"s0","span":[94,114]}
+  ],
+  "scripts": [],
+  "styles": []
+}}

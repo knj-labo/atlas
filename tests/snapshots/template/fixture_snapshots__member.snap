@@ -1,0 +1,29 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [
+    {"closing_name_span":[58,68],"directives":[],"element":"e0","name":"UI.Counter","name_span":[45,55],"reference":"r0","span":[44,69]}
+  ],
+  "declarations": [
+    {"id":"d0","import":{"source":"./components","specifier":"Namespace","type_only":false},"injection":null,"kind":"Import","name":"UI","scope":"s0","span":[16,18]}
+  ],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[],"closing_span":[56,69],"directives":[],"id":"e0","kind":"Component","name":"UI.Counter","name_span":[45,55],"opening_span":[44,56],"parent":null,"reference":"r0","slot":null,"span":[44,69],"text":[]}
+  ],
+  "imports": [
+    {"bindings":[{"name":"UI","span":[16,18],"target":{"source":"./components","specifier":"Namespace","type_only":false}}],"source":"./components","source_span":[24,38],"span":[4,39]}
+  ],
+  "references": [
+    {"id":"r0","kind":"Value","name":"UI","resolution":{"Resolved":"d0"},"scope":"s0","span":[45,47]},
+    {"id":"r1","kind":"Value","name":"UI","resolution":{"Resolved":"d0"},"scope":"s0","span":[58,60]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,70]}
+  ],
+  "scripts": [],
+  "styles": []
+}}

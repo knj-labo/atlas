@@ -1,0 +1,49 @@
+---
+source: tests/fixture_snapshots.rs
+expression: "render::snapshot(&result)"
+---
+{"Ok": {
+  "builtin_uses": [],
+  "components": [
+    {"closing_name_span":null,"directives":[],"element":"e0","name":"Default","name_span":[220,227],"reference":"r0","span":[219,230]},
+    {"closing_name_span":null,"directives":[],"element":"e1","name":"Renamed","name_span":[232,239],"reference":"r1","span":[231,242]},
+    {"closing_name_span":null,"directives":[],"element":"e2","name":"StringNamed","name_span":[244,255],"reference":"r2","span":[243,258]},
+    {"closing_name_span":null,"directives":[],"element":"e3","name":"UI.Forms.Counter","name_span":[260,276],"reference":"r3","span":[259,279]},
+    {"closing_name_span":null,"directives":[],"element":"e4","name":"TypeOnly","name_span":[281,289],"reference":"r4","span":[280,292]}
+  ],
+  "declarations": [
+    {"id":"d0","import":{"source":"./default","specifier":"Default","type_only":false},"injection":null,"kind":"Import","name":"Default","scope":"s0","span":[29,36]},
+    {"id":"d1","import":{"source":"./named","specifier":{"Named":"Counter"},"type_only":false},"injection":null,"kind":"Import","name":"Renamed","scope":"s0","span":[75,82]},
+    {"id":"d2","import":{"source":"./named","specifier":{"Named":"Props"},"type_only":true},"injection":null,"kind":"Import","name":"Props","scope":"s0","span":[89,94]},
+    {"id":"d3","import":{"source":"./named","specifier":{"Named":"Widget-name"},"type_only":false},"injection":null,"kind":"Import","name":"StringNamed","scope":"s0","span":[113,124]},
+    {"id":"d4","import":{"source":"./types","specifier":"Default","type_only":true},"injection":null,"kind":"Import","name":"TypeOnly","scope":"s0","span":[155,163]},
+    {"id":"d5","import":{"source":"./namespace","specifier":"Namespace","type_only":false},"injection":null,"kind":"Import","name":"UI","scope":"s0","span":[192,194]}
+  ],
+  "diagnostics": [],
+  "elements": [
+    {"attributes":[],"closing_span":null,"directives":[],"id":"e0","kind":"Component","name":"Default","name_span":[220,227],"opening_span":[219,230],"parent":null,"reference":"r0","slot":null,"span":[219,230],"text":[]},
+    {"attributes":[],"closing_span":null,"directives":[],"id":"e1","kind":"Component","name":"Renamed","name_span":[232,239],"opening_span":[231,242],"parent":null,"reference":"r1","slot":null,"span":[231,242],"text":[]},
+    {"attributes":[],"closing_span":null,"directives":[],"id":"e2","kind":"Component","name":"StringNamed","name_span":[244,255],"opening_span":[243,258],"parent":null,"reference":"r2","slot":null,"span":[243,258],"text":[]},
+    {"attributes":[],"closing_span":null,"directives":[],"id":"e3","kind":"Component","name":"UI.Forms.Counter","name_span":[260,276],"opening_span":[259,279],"parent":null,"reference":"r3","slot":null,"span":[259,279],"text":[]},
+    {"attributes":[],"closing_span":null,"directives":[],"id":"e4","kind":"Component","name":"TypeOnly","name_span":[281,289],"opening_span":[280,292],"parent":null,"reference":"r4","slot":null,"span":[280,292],"text":[]}
+  ],
+  "imports": [
+    {"bindings":[],"source":"./setup","source_span":[11,20],"span":[4,21]},
+    {"bindings":[{"name":"Default","span":[29,36],"target":{"source":"./default","specifier":"Default","type_only":false}}],"source":"./default","source_span":[42,53],"span":[22,54]},
+    {"bindings":[{"name":"Renamed","span":[75,82],"target":{"source":"./named","specifier":{"Named":"Counter"},"type_only":false}},{"name":"Props","span":[89,94],"target":{"source":"./named","specifier":{"Named":"Props"},"type_only":true}},{"name":"StringNamed","span":[113,124],"target":{"source":"./named","specifier":{"Named":"Widget-name"},"type_only":false}}],"source":"./named","source_span":[132,141],"span":[55,142]},
+    {"bindings":[{"name":"TypeOnly","span":[155,163],"target":{"source":"./types","specifier":"Default","type_only":true}}],"source":"./types","source_span":[169,178],"span":[143,179]},
+    {"bindings":[{"name":"UI","span":[192,194],"target":{"source":"./namespace","specifier":"Namespace","type_only":false}}],"source":"./namespace","source_span":[200,213],"span":[180,214]}
+  ],
+  "references": [
+    {"id":"r0","kind":"Value","name":"Default","resolution":{"Resolved":"d0"},"scope":"s0","span":[220,227]},
+    {"id":"r1","kind":"Value","name":"Renamed","resolution":{"Resolved":"d1"},"scope":"s0","span":[232,239]},
+    {"id":"r2","kind":"Value","name":"StringNamed","resolution":{"Resolved":"d3"},"scope":"s0","span":[244,255]},
+    {"id":"r3","kind":"Value","name":"UI","resolution":{"Resolved":"d5"},"scope":"s0","span":[260,262]},
+    {"id":"r4","kind":"Value","name":"TypeOnly","resolution":"Unresolved","scope":"s0","span":[281,289]}
+  ],
+  "scopes": [
+    {"domain":"Server","id":"s0","kind":"Root","parent":null,"span":[0,293]}
+  ],
+  "scripts": [],
+  "styles": []
+}}
