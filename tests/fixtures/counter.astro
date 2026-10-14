@@ -1,0 +1,15 @@
+---
+import Counter from './Counter.tsx';
+
+const { widgets } = Astro.props;
+---
+
+<Counter client:visible />
+
+{widgets.map((Counter) => (
+  <Counter />
+))}
+
+<script>
+  console.log(Counter);
+</script>

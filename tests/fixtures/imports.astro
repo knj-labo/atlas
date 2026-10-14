@@ -1,0 +1,12 @@
+---
+import './setup';
+import Default from './default';
+import { Counter as Renamed, type Props, "Widget-name" as StringNamed } from './named';
+import type TypeOnly from './types';
+import * as UI from './namespace';
+---
+<Default />
+<Renamed />
+<StringNamed />
+<UI.Forms.Counter />
+<TypeOnly />

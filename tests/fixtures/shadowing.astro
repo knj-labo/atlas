@@ -1,0 +1,17 @@
+---
+import Counter from './Counter.astro';
+import { Counter as NamedCounter } from './components';
+const components = [Counter];
+{
+  const Counter = NamedCounter;
+  Counter;
+}
+---
+<Counter />
+<NamedCounter />
+{components.map((Counter) => <section>
+  <Counter data-outer />
+  {components.map((Counter) => <Counter data-inner />)}
+  <Counter data-after />
+</section>)}
+<Counter data-root />
