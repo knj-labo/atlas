@@ -55,7 +55,14 @@ All rows marked Supported below passed. Rust tests are in [spec.rs](../tests/spe
 | Unicode, emoji, CRLF, entities and JS escapes | All tested spans reconstruct original input, including CSS syntax labels | Supported; no source rewriting | CSS span/error tests; phase-1/phase-2 spans; `unicode-crlf`, `inline-css` fixtures |
 | Malformed input vs unresolved identifiers | Syntax Err, semantic gated; undefined tag remains Ok/Unresolved | Supported | phase-1 malformed/undefined tests; `invalid-*` fixtures |
 | Routing, collections, middleware, integrations, custom renderers/directives, actions, adapters | Expressions/imports remain available as facts | Project required; no project graph or config execution | Contract boundary; no runtime implementation |
-| TS checking, rendering, runtime APIs, browser DOM, CSS cascade, preprocessors, CLI, Salsa | Not implemented | Out of scope | Contract boundary |
+| File-level incremental analysis | Optional `AnalysisDatabase` manages caller-supplied paths and text; unchanged files reuse owned results and syntax errors | Supported with `incremental`; no filesystem access or import resolution | `incremental` unit tests; `tests/incremental.rs` |
+| TS checking, rendering, runtime APIs, browser DOM, CSS cascade, preprocessors, CLI | Not implemented | Out of scope | Contract boundary |
+
+## Incremental API
+
+Enable the `incremental` Cargo feature to use `AnalysisDatabase::new()` or `Default`. `set_source(path, text)` registers or replaces complete source text without analyzing it. `analyze_file(path)` returns `None` for an unregistered key and otherwise returns an `Arc<Result<FileFacts, AnalysisError>>`. It reuses successful facts and syntax errors until the file changes; the next request analyzes its latest full text. Identical text updates are skipped before changing the input revision. Updating one file does not rerun another file's analysis.
+
+Paths follow `PathBuf` equality/hashing without canonicalization or filesystem I/O. Returned results remain usable across updates and database destruction; IDs belong to each result, not to a stable cross-revision namespace. Inputs and cached results live until the database is dropped, and caller-held `Arc` values retain their results independently. The initial API has no file removal, reset, persistent cache, or parallel snapshot API. See [ADR 0002](adr/0002-incremental-analysis.md) for the decision and alternatives.
 
 ## Fixed-release differences
 
@@ -75,4 +82,4 @@ The native compiler's Astro parse rejects a top-level `return` and an opening-li
 - [Astro 7.0.6 source](https://github.com/withastro/astro/tree/dbe9144e55ccbe4cccac53abef60d8a41509178f), including public attribute types and `defineScriptVars` normalization.
 - [Astro syntax](https://docs.astro.build/en/basics/astro-syntax/), [directives](https://docs.astro.build/en/reference/directives-reference/), [scripts](https://docs.astro.build/en/guides/client-side-scripts/), [styling](https://docs.astro.build/en/guides/styling/). These are supporting current documentation; release-specific behavior is checked using the pinned package.
 - [Lightning CSS](https://github.com/parcel-bundler/lightningcss) parses typed stylesheet/declaration values for syntax validation. cssparser supplies lossless tokens for ordered facts and source maps. Unknown property values remain raw rather than being classified as computed CSS.
-- `npm ci --ignore-scripts && npm run test:conformance` builds only the test serializer and checks 83 registered sources. Node is not a library runtime dependency. `cargo test --locked --all-targets` runs the owned semantic/CSS assertions without Node.
+- `npm ci --ignore-scripts && npm run test:conformance` builds only the test serializer and checks 86 registered sources. Node is not a library runtime dependency. `cargo test --locked --all-targets` runs the owned semantic/CSS assertions without Node.
