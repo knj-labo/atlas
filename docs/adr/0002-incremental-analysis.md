@@ -2,6 +2,10 @@
 
 Status: Accepted
 
+Extended by [ADR 0003](0003-project-import-search.md) for file removal, shared source
+buffers, and project import snapshots. The original decision below describes the
+initial file-level API.
+
 Date: 2026-10-14
 
 ## Context
