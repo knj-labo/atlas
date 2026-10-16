@@ -38,7 +38,8 @@ let project = atlas::analyze_project([
     ("Button.astro", "<button />"),
     ("Page.astro", "---\nimport Button from './Button.astro';\n---\n<Button />"),
 ]);
-assert_eq!(project.imports_to("Button.astro").len(), 1);
+assert_eq!(project.outgoing_imports("Page.astro").len(), 1);
+assert_eq!(project.incoming_imports("Button.astro").len(), 1);
 assert_eq!(project.references_to_file("Button.astro").len(), 1);
 assert_eq!(project.revision(), None);
 ```
@@ -51,9 +52,11 @@ further parsing or resolution. `analyze_project_with_resolver(sources, &resolver
 uses a custom `ModuleResolver`, borrowed only for that call.
 
 `ProjectSnapshot` retains the exact sources and analyses.
-`imports_from(path)` lists dependencies and their `ModuleResolution`;
-`imports_to(path)` lists direct importers, including unused and side-effect
-imports. `references_to_file(path)` lists definite lexical uses of those imports,
+`outgoing_imports(path)` lists static import declarations contained in that file,
+including unresolved imports. `incoming_imports(path)` lists declarations whose
+module resolved to that file. Both return import records, including unused and
+side-effect imports, with the containing file and `ModuleResolution`.
+`references_to_file(path)` lists definite lexical uses of imports targeting that file,
 and `reference_at(path, byte)` combines a local reference with its originating
 import. Results borrow existing facts and are ordered by path, then source position.
 Inspect `file(path).analysis` for syntax errors; failed importers have no indexed

@@ -27,7 +27,7 @@ fn aliases_types_namespaces_and_unused_imports_share_a_file_index() {
     sources.insert("/v/pages/Page.astro", source);
     sources.insert("/v/components/Button.astro", "<button />");
     let snapshot = analyze_project(sources.clone());
-    let imports = snapshot.imports_to("/v/components/Button.astro");
+    let imports = snapshot.incoming_imports("/v/components/Button.astro");
     assert_eq!(imports.len(), 5);
     assert!(
         imports
@@ -160,7 +160,7 @@ fn reverse_indexes_use_path_then_source_order_and_handle_cycles() {
     );
     assert_eq!(
         snapshot
-            .imports_to("a.astro")
+            .incoming_imports("a.astro")
             .iter()
             .map(|import| import.path)
             .collect::<Vec<_>>(),
@@ -178,8 +178,8 @@ fn reverse_indexes_use_path_then_source_order_and_handle_cycles() {
     assert!(uses[1].reference.span.start < uses[2].reference.span.start);
     assert_eq!(snapshot.references_to_file("z.astro").len(), 1);
     assert!(snapshot.references_to_file("m.astro").is_empty());
-    assert!(snapshot.imports_from("unknown").is_empty());
-    assert!(snapshot.imports_to("unknown").is_empty());
+    assert!(snapshot.outgoing_imports("unknown").is_empty());
+    assert!(snapshot.incoming_imports("unknown").is_empty());
     assert!(snapshot.references_to_file("unknown").is_empty());
     assert!(snapshot.reference_at("unknown", 0).is_none());
     assert!(snapshot.reference_at("a.astro", u32::MAX).is_none());
@@ -195,7 +195,7 @@ fn relative_resolution_preserves_exact_keys_and_reports_ambiguity() {
     sources.insert("src/tmp/../components/Button.astro", "<button />");
     let first = analyze_project(sources.clone());
     assert_eq!(
-        first.imports_from("src/pages/Page.astro")[0].resolution,
+        first.outgoing_imports("src/pages/Page.astro")[0].resolution,
         &resolved("src/tmp/../components/Button.astro")
     );
     assert!(first.file("src/components/Button.astro").is_none());
@@ -209,7 +209,7 @@ fn relative_resolution_preserves_exact_keys_and_reports_ambiguity() {
     sources.insert("src/components/Button.astro", "<button />");
     let ambiguous = analyze_project(sources.clone());
     assert_eq!(
-        ambiguous.imports_from("src/pages/Page.astro")[0].resolution,
+        ambiguous.outgoing_imports("src/pages/Page.astro")[0].resolution,
         &ModuleResolution::Ambiguous(vec![
             "src/components/Button.astro".into(),
             "src/tmp/../components/Button.astro".into()
@@ -217,7 +217,7 @@ fn relative_resolution_preserves_exact_keys_and_reports_ambiguity() {
     );
     assert!(
         ambiguous
-            .imports_to("src/components/Button.astro")
+            .incoming_imports("src/components/Button.astro")
             .is_empty()
     );
     assert!(
@@ -279,7 +279,7 @@ fn default_resolver_does_not_guess_packages_extensions_indexes_or_query_suffixes
             ("Page.astro", source.as_str()),
         ]);
         assert_eq!(
-            snapshot.imports_from("Page.astro")[0].resolution,
+            snapshot.outgoing_imports("Page.astro")[0].resolution,
             &expected,
             "{specifier}"
         );
@@ -304,9 +304,9 @@ fn syntax_errors_are_visible_without_discarding_other_files_or_incoming_imports(
     sources.insert("Broken.astro", "---\nconst =;\n---");
     let snapshot = analyze_project(sources.clone());
     assert!(snapshot.file("Broken.astro").unwrap().analysis.is_err());
-    assert_eq!(snapshot.imports_to("Broken.astro").len(), 1);
+    assert_eq!(snapshot.incoming_imports("Broken.astro").len(), 1);
     assert_eq!(snapshot.references_to_file("Broken.astro").len(), 1);
-    assert!(snapshot.imports_from("Broken.astro").is_empty());
+    assert!(snapshot.outgoing_imports("Broken.astro").is_empty());
     assert!(snapshot.reference_at("Broken.astro", 5).is_none());
     sources.insert("Broken.astro", "<button />");
     let fixed = analyze_project(sources.clone());
@@ -318,7 +318,7 @@ fn syntax_errors_are_visible_without_discarding_other_files_or_incoming_imports(
     );
     let error = analyze_project(sources.clone());
     assert!(error.file("Page.astro").unwrap().analysis.is_err());
-    assert!(error.imports_to("Broken.astro").is_empty());
+    assert!(error.incoming_imports("Broken.astro").is_empty());
     assert!(error.references_to_file("Broken.astro").is_empty());
     fn assert_send_sync<T: Send + Sync>() {}
     assert_send_sync::<ProjectSnapshot>();
@@ -341,8 +341,8 @@ fn resolver_receives_import_domain_even_for_side_effect_imports() {
     sources.insert("Server.astro", "");
     sources.insert("Browser.astro", "");
     let snapshot = analyze_project_with_resolver(sources, &DomainResolver);
-    assert_eq!(snapshot.imports_to("Server.astro").len(), 1);
-    assert_eq!(snapshot.imports_to("Browser.astro").len(), 2);
+    assert_eq!(snapshot.incoming_imports("Server.astro").len(), 1);
+    assert_eq!(snapshot.incoming_imports("Browser.astro").len(), 2);
     assert!(snapshot.references_to_file("Server.astro").is_empty());
     assert!(snapshot.references_to_file("Browser.astro").is_empty());
 }
@@ -353,7 +353,7 @@ fn self_imports_in_server_and_browser_domains_keep_distinct_bindings() {
     let mut sources = BTreeMap::new();
     sources.insert("Page.astro", source);
     let snapshot = analyze_project(sources.clone());
-    let imports = snapshot.imports_to("Page.astro");
+    let imports = snapshot.incoming_imports("Page.astro");
     assert_eq!(imports.len(), 3);
     assert_eq!(
         imports
@@ -383,8 +383,8 @@ fn empty_inputs_and_duplicate_paths_have_explicit_results() {
     let empty = analyze_project(std::iter::empty::<(&str, &str)>());
     assert_eq!(empty.files().len(), 0);
     assert_eq!(empty.revision(), None);
-    assert!(empty.imports_from("unknown").is_empty());
-    assert!(empty.imports_to("unknown").is_empty());
+    assert!(empty.outgoing_imports("unknown").is_empty());
+    assert!(empty.incoming_imports("unknown").is_empty());
     assert!(empty.references_to_file("unknown").is_empty());
     assert!(empty.reference_at("unknown", 0).is_none());
 
@@ -478,8 +478,8 @@ fn borrowed_resolvers_run_per_analysis_and_are_not_retained_by_queries() {
         assert_eq!(calls.load(Ordering::Relaxed), 2);
         for project in [&first, &second] {
             assert_eq!(project.revision(), None);
-            assert_eq!(project.imports_from("Page.astro").len(), 1);
-            assert_eq!(project.imports_to("Button.astro").len(), 1);
+            assert_eq!(project.outgoing_imports("Page.astro").len(), 1);
+            assert_eq!(project.incoming_imports("Button.astro").len(), 1);
             assert_eq!(project.references_to_file("Button.astro").len(), 1);
             assert!(
                 project

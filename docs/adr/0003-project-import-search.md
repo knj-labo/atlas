@@ -99,8 +99,10 @@ lexical resolution is `Resolved` to one of those IDs. The local resolution remai
 unchanged; it is distinct from module resolution. Equal names, scope shadowing,
 builtins, unresolved identifiers, and runtime candidates never create false edges.
 
-`imports_from` returns all static import declarations, including unused and
-side-effect imports. `imports_to` returns direct declarations targeting a file.
+`outgoing_imports(path)` returns static import declarations contained in that file,
+including unused, side-effect, and unresolved imports. `incoming_imports(path)`
+returns declarations whose module resolved to that file. Both return import
+records identifying the file containing each declaration.
 `references_to_file` returns definite lexical uses of imports targeting that file.
 `reference_at` returns a local reference and its originating import when present,
 including unresolved module decisions. Results are ordered by path and source

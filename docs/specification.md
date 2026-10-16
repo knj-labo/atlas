@@ -79,8 +79,8 @@ Paths follow `PathBuf` equality/hashing without canonicalization or filesystem I
 
 | Snapshot method | Contract |
 | --- | --- |
-| `imports_from(path)` | Static import declarations from a successful file, including side-effect and unused imports, with their execution domain and `ModuleResolution`. |
-| `imports_to(path)` | Direct import declarations whose module resolved to the exact supplied target key. |
+| `outgoing_imports(path)` | Static import declarations contained in a successful file at `path`, including side-effect, unused, and unresolved imports, with their execution domain and `ModuleResolution`. |
+| `incoming_imports(path)` | Direct import declarations whose module resolved to the exact supplied target key. |
 | `references_to_file(path)` | Value/type references definitely bound to an import of that target file, including aliases and namespace roots. |
 | `reference_at(path, offset)` | A canonical local reference and its originating import, if definitely bound to one. Module resolution uncertainty does not replace lexical `Resolution`. |
 | `revision()` | `None` for uncached analysis; `Some(ProjectRevision)` with database-local source/resolver counters for cached analysis. They are not identities across databases. |

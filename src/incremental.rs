@@ -118,7 +118,7 @@ impl AnalysisDatabase {
     /// db.set_source("Button.astro", "<button />");
     /// db.set_source("Page.astro", "---\nimport Button from './Button.astro';\n---\n<Button />");
     /// let project = db.analyze_project();
-    /// assert_eq!(project.imports_to("Button.astro").len(), 1);
+    /// assert_eq!(project.incoming_imports("Button.astro").len(), 1);
     /// assert_eq!(project.references_to_file("Button.astro").len(), 1);
     /// assert!(db.remove_file("Button.astro"));
     /// assert!(db.analyze_project().references_to_file("Button.astro").is_empty());

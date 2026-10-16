@@ -31,7 +31,7 @@ fn additions_removals_updates_and_readdition_invalidate_project_results() {
     let original_analysis = db.analyze_file("Page.astro").unwrap();
     let missing = db.analyze_project();
     assert_eq!(
-        missing.imports_from("Page.astro")[0].resolution,
+        missing.outgoing_imports("Page.astro")[0].resolution,
         &ModuleResolution::Unresolved
     );
     db.set_source("Page.astro", source);
@@ -80,14 +80,18 @@ fn additions_removals_updates_and_readdition_invalidate_project_results() {
     let removed = db.analyze_project();
     assert!(removed.references_to_file("部品.astro").is_empty());
     assert_eq!(
-        removed.imports_from("Page.astro")[0].resolution,
+        removed.outgoing_imports("Page.astro")[0].resolution,
         &ModuleResolution::Unresolved
     );
     db.set_source("部品.astro", "<button>new</button>");
     let readded = db.analyze_project();
     assert_eq!(readded.references_to_file("部品.astro").len(), 1);
     db.set_source("Page.astro", "<p />");
-    assert!(db.analyze_project().imports_to("部品.astro").is_empty());
+    assert!(
+        db.analyze_project()
+            .incoming_imports("部品.astro")
+            .is_empty()
+    );
     db.remove_file("Page.astro");
     assert!(db.analyze_project().reference_at("Page.astro", 0).is_none());
     drop(db);
@@ -140,7 +144,7 @@ fn resolver_replacement_and_source_changes_refresh_resolution_without_reparsing_
     db.set_source("B.astro", "<button />");
     let first = db.analyze_project();
     assert_eq!(
-        first.imports_from("Page.astro")[0].resolution,
+        first.outgoing_imports("Page.astro")[0].resolution,
         &ModuleResolution::Unsupported
     );
     let calls = Arc::new(AtomicUsize::new(0));
@@ -152,7 +156,7 @@ fn resolver_replacement_and_source_changes_refresh_resolution_without_reparsing_
     let a = db.analyze_project();
     assert_eq!(calls.load(Ordering::Relaxed), 2);
     assert_eq!(a.references_to_file("A.astro").len(), 1);
-    assert_eq!(a.imports_to("Other.astro").len(), 1);
+    assert_eq!(a.incoming_imports("Other.astro").len(), 1);
     assert!(Arc::ptr_eq(&a, &db.analyze_project()));
     assert_eq!(calls.load(Ordering::Relaxed), 2);
     assert_eq!(
@@ -185,7 +189,7 @@ fn resolver_replacement_and_source_changes_refresh_resolution_without_reparsing_
         calls: Arc::clone(&calls),
     });
     assert_eq!(
-        db.analyze_project().imports_from("Page.astro")[0].resolution,
+        db.analyze_project().outgoing_imports("Page.astro")[0].resolution,
         &ModuleResolution::Unresolved
     );
     db.set_source("Missing.astro", "<button />");
@@ -272,8 +276,8 @@ fn assert_queries_match(left: &ProjectSnapshot, right: &ProjectSnapshot) {
         assert_eq!(file.source, other.source);
         assert_eq!(file.analysis, other.analysis);
         for (left, right) in [
-            (left.imports_from(path), right.imports_from(path)),
-            (left.imports_to(path), right.imports_to(path)),
+            (left.outgoing_imports(path), right.outgoing_imports(path)),
+            (left.incoming_imports(path), right.incoming_imports(path)),
         ] {
             assert_eq!(left.len(), right.len());
             for (left, right) in left.into_iter().zip(right) {

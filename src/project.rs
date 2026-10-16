@@ -78,9 +78,10 @@ pub struct ProjectFile {
     pub analysis: Arc<Result<FileFacts, AnalysisError>>,
 }
 
-/// A borrowed import, its source file, and its module resolution.
+/// A borrowed import, its containing file, and its module resolution.
 #[derive(Debug, Clone, Copy)]
 pub struct ProjectImport<'a> {
+    /// Path of the file containing this import declaration.
     pub path: &'a Path,
     pub import: &'a Import,
     pub domain: ScopeDomain,
@@ -158,9 +159,10 @@ impl ProjectSnapshot {
         self.files.get(path.as_ref())
     }
 
-    /// All static imports from a file, including unused and side-effect imports.
+    /// Static import declarations contained in `path`, including unused and
+    /// side-effect imports, regardless of their module resolution state.
     /// Unknown or failed files return no matches; inspect [`Self::file`] for errors.
-    pub fn imports_from(&self, path: impl AsRef<Path>) -> Vec<ProjectImport<'_>> {
+    pub fn outgoing_imports(&self, path: impl AsRef<Path>) -> Vec<ProjectImport<'_>> {
         self.indexes
             .get(path.as_ref())
             .into_iter()
@@ -169,8 +171,9 @@ impl ProjectSnapshot {
             .collect()
     }
 
-    /// Imports whose module resolved to this exact registered path key.
-    pub fn imports_to(&self, path: impl AsRef<Path>) -> Vec<ProjectImport<'_>> {
+    /// Static import declarations whose module resolved to the exact supplied
+    /// target `path`. Each result identifies the file containing the declaration.
+    pub fn incoming_imports(&self, path: impl AsRef<Path>) -> Vec<ProjectImport<'_>> {
         self.importers
             .get(path.as_ref())
             .into_iter()
@@ -185,7 +188,7 @@ impl ProjectSnapshot {
     /// This is a file-level usage query, not a query for an exported declaration.
     /// Unknown paths, unresolved/unsupported/ambiguous modules, and uncertain
     /// lexical resolutions produce no matches. Side-effect and unused imports
-    /// are available through [`Self::imports_to`] instead.
+    /// are available through [`Self::incoming_imports`] instead.
     pub fn references_to_file(&self, path: impl AsRef<Path>) -> Vec<ProjectReference<'_>> {
         self.references
             .get(path.as_ref())
