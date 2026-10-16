@@ -140,7 +140,7 @@ impl AnalysisDatabase {
                 })
                 .collect();
             Arc::new(ProjectSnapshot::build(
-                self.revision,
+                Some(self.revision),
                 files,
                 self.resolver.as_ref(),
             ))

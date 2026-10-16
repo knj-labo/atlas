@@ -50,13 +50,13 @@ Compiler evidence and Node grammar checks remain separate. The pinned compiler r
 
 The two new failures were reproduced before their fixes: a backslash followed by an actual U+2028/U+2029 produced `--to<separator>ne` instead of `--tone`; NEL/BOM keys resolved to declarations with the wrong injection origins. The `css_line_continuations` and `injected_ecmascript_whitespace` tests now check names, target IDs, key/value origins, UTF-8 spans, and raw source recovery. The three registered fixtures have accepted snapshots and independent compiler extraction/helper evidence.
 
-`css_parser_boundaries` checks charset/import rules, nested selectors and conditions, duplicate declarations, `!important`, and custom-property block values containing semicolons and braces. `css_decoded_names_preserve_original_source` distinguishes literal Unicode escapes from line continuations and checks HTML entities, JavaScript hex/braced Unicode escapes, and CSS escapes. All 83 pre-refactor snapshot bodies are unchanged. The 16 AST semantic fixtures use their file names as IDs and matching snapshot filenames. Default and serde-only test runs cover 73 Rust tests, 86 snapshots, and two doctests; compiler comparisons cover 86 cases, plus four registry rejection tests.
+`css_parser_boundaries` checks charset/import rules, nested selectors and conditions, duplicate declarations, `!important`, and custom-property block values containing semicolons and braces. `css_decoded_names_preserve_original_source` distinguishes literal Unicode escapes from line continuations and checks HTML entities, JavaScript hex/braced Unicode escapes, and CSS escapes. All 83 pre-refactor snapshot bodies are unchanged. The 16 AST semantic fixtures use their file names as IDs and matching snapshot filenames. Default and serde-only test runs cover 84 Rust tests, 86 snapshots, and four doctests; compiler comparisons cover 86 cases, plus four registry rejection tests.
 
 ## Incremental verification
 
 The optional `incremental` feature has six unit tests in [incremental.rs](../src/incremental.rs) and four public-API tests in [tests/incremental.rs](../tests/incremental.rs). Unit tests install a test-only Salsa `WillExecute` event callback. They count query executions to verify lazy registration, memo reuse, identical-text no-ops, isolation between files, latest-text analysis after multiple pending updates, independent inputs for equal text at different paths, and caching/recovery for parser, semantic, and CSS syntax errors. Pointer identity checks additionally verify shared `Arc` results; execution events establish that the query did not rerun.
 
-Public-API tests compare all 86 registered fixtures with standalone `analyze`, check repeated shared results, retain results across updates and database destruction, and verify independent databases, unknown paths, and lexical `PathBuf` keys that do not require files to exist. Fixture parity covers both successful facts and syntax errors without new snapshots or compiler baselines. Including the file-local and project query suites, incremental-only and all-feature runs cover 94 Rust tests, the existing 86 snapshots, the 86 fixture parity comparisons, and five doctests.
+Public-API tests compare all 86 registered fixtures with standalone `analyze`, check repeated shared results, retain results across updates and database destruction, and verify independent databases, unknown paths, and lexical `PathBuf` keys that do not require files to exist. Fixture parity covers both successful facts and syntax errors without new snapshots or compiler baselines. Including the file-local and project query suites, incremental-only and all-feature runs cover 98 Rust tests, the existing 86 snapshots, the 86 fixture parity comparisons, and six doctests.
 
 CI tests all four feature combinations: default, serde only, incremental only, and both features. It checks that the default normal dependency tree contains no Salsa packages and runs doctests with default and all features. Rust 1.91.1 remains pinned; Salsa 0.28.5 enables only `macros` and `inventory`.
 
@@ -82,8 +82,14 @@ These inline scenarios do not add fixtures or change snapshot baselines.
 indexes, aliases/type imports/namespaces, side-effect and unused imports,
 server/browser separation, uncertain resolutions, deterministic ordering, cycles,
 Unicode/CRLF positions, relative virtual path normalization and ambiguity, missing
-and unsupported targets, file addition/removal/re-addition, source and resolver
-changes, retained snapshots, analysis errors, and reuse of unchanged file results.
+and unsupported targets, and analysis errors with default features. Uncached API
+tests also cover empty and duplicate inputs, owned sources, borrowed resolvers,
+and per-call resolver execution without re-execution during snapshot queries.
+[project_incremental.rs](../tests/project_incremental.rs) checks file
+addition/removal/re-addition, source and resolver changes, retained snapshots,
+and reuse of unchanged file results. It compares cached and uncached sources,
+facts, imports, file uses, and every byte-position query, including custom
+resolution and failed files.
 The compiler comparison remains evidence for single-file syntax and positions;
 it is not a module-resolution oracle for the virtual project API.
 

@@ -20,46 +20,66 @@ any particular member exists.
 
 ## Decision
 
-Extend the optional `incremental` API with `remove_file`, `set_module_resolver`,
-and `analyze_project`. Default builds retain the existing dependencies and API.
-No runtime dependency is added.
+Expose project facts, module resolvers, and uncached `analyze_project` and
+`analyze_project_with_resolver` functions with default features. Extend the
+optional `incremental` API with `remove_file`, `set_module_resolver`, and
+`AnalysisDatabase::analyze_project` for callers that want caching. No default
+runtime dependency is added.
+
+### Uncached analysis and shared indexing
+
+Uncached calls accept an iterator of path/source pairs. Paths convert to `PathBuf`
+and sources to `Arc<str>`. Duplicate keys under `PathBuf` equality select the last
+source before analysis. Every call analyzes those final sources and resolves
+static imports anew; later snapshot queries perform no parsing or resolution.
+The custom resolver is borrowed during construction and is not retained.
+
+Both uncached entry points and the optional database use the same private
+snapshot builder. The builder accepts exact sources and their analyses, so the
+query layer has no Salsa dependency. File syntax errors remain available as
+`ProjectFile.analysis` and do not fail the complete project call.
+
+`ProjectSnapshot::revision()` returns `Option<ProjectRevision>`: uncached results
+have no database revision (`None`), while database results return `Some` with
+source-set and resolver-setting counters.
 
 ### Source and result ownership
 
-`ProjectSnapshot` owns an ordered map of registered keys to `ProjectFile` records.
-Each contains the exact source as `Arc<str>` and its memoized
-`Arc<Result<FileFacts, AnalysisError>>`. The private Salsa input also stores
-`Arc<str>`, so snapshots share immutable buffers rather than copying source text.
+`ProjectSnapshot` owns an ordered map of supplied keys to `ProjectFile` records.
+Each contains the exact source as `Arc<str>` and its corresponding
+`Arc<Result<FileFacts, AnalysisError>>`. With caching enabled, the private Salsa
+input also stores `Arc<str>`, so snapshots share immutable buffers rather than
+copying source text.
 File facts and IDs are unchanged. An ID must be paired with its file and result;
 project APIs borrow the canonical records from their retained analyses.
 
 Failed files remain visible in the snapshot but supply no outgoing dependencies
-or identifier references. Resolving a module to a registered key does not imply
+or identifier references. Resolving a module to a supplied key does not imply
 that its source parsed successfully or that its named exports exist.
 
 ### Resolution boundary
 
 `ModuleResolver` is a `Send + Sync` adapter with an immutable request containing
 the importer key, original `Import`, and scope domain. `ProjectSources` supplies
-the complete registered source snapshot in path order. Type information is not
+the complete supplied source snapshot in path order. Type information is not
 part of this interface. Implementations must be deterministic for immutable
 settings, the request, and that snapshot. Changing external inputs must be
-represented by replacing the resolver or updating registered source buffers.
+represented by replacing the resolver or updating supplied source buffers.
 
 `ModuleResolution` distinguishes `Resolved`, `Unresolved`, `Unsupported`, and
-`Ambiguous`. A resolved target must be an exact registered key; the snapshot builder
+`Ambiguous`. A resolved target must be an exact supplied key; the snapshot builder
 converts absent keys to `Unresolved`. This avoids indexing nonexistent files when
 an adapter returns an outdated configured target.
 
-Custom `Ambiguous` candidates are retained as reported for inspection; registration
+Custom `Ambiguous` candidates are retained as reported for inspection; target-key
 validation applies to `Resolved` results, and ambiguous candidates create no edges.
 
 The default `RelativeResolver` is a virtual-file policy, not a Node, TypeScript,
 or Vite resolver. It matches explicit relative paths after lexical normalization
 of dot and parent components and collapsing repeated separators. It returns the
 original key and reports ambiguity when distinct keys normalize to the same
-location. Database key identity still
-follows `PathBuf` equality, without canonicalization, symlink lookup, filesystem
+location. Input key identity still follows `PathBuf` equality, without
+canonicalization, symlink lookup, filesystem
 access, or case folding. It does not infer extensions or directory indexes, and
 does not handle packages, aliases, URLs, absolute specifiers, query/hash suffixes,
 backslash paths, or directory forms ending in `/`, `/.`, or `/..`. Callers can
@@ -90,8 +110,9 @@ are not indexed.
 
 ### Invalidation and lifetime
 
-Each database maintains separate monotonic source-set and resolver revision
-counters. They describe one database's revisions and are not globally unique IDs.
+With the optional `incremental` feature, each database maintains separate monotonic
+source-set and resolver revision counters. They describe one database's revisions
+and are not globally unique IDs.
 An actual source change, registration, or successful removal advances the source
 revision. Every resolver replacement advances the resolver revision. Identical
 source updates and removal of an absent key are no-ops.
@@ -122,9 +143,13 @@ reverse indexes and shared references to analysis results.
 
 ## Validation
 
-[Project tests](../../tests/project.rs) exercise resolver replacement, file
-addition/removal/re-addition, source updates, negative lookup invalidation, retained
-snapshots, canonical borrowing, relative path ambiguity, source ordering, cycles,
-syntax errors, aliases, types, namespace roots, Unicode/CRLF, and script domains.
+Default-feature [project tests](../../tests/project.rs) cover canonical borrowing,
+relative path ambiguity, source ordering, cycles, syntax errors, aliases, types,
+namespace roots, Unicode/CRLF, script domains, input ownership, duplicate keys,
+and uncached resolver execution.
+[Incremental project tests](../../tests/project_incremental.rs) exercise resolver
+replacement, file addition/removal/re-addition, source updates, negative lookup
+invalidation, and retained snapshots. They also compare cached and uncached
+results across all query methods.
 Existing file-level memoization tests, fixture snapshots, compiler comparisons,
 feature combinations, doctests, and Clippy remain required.

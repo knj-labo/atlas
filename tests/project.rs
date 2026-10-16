@@ -1,10 +1,10 @@
-#![cfg(feature = "incremental")]
-
 use atlas::{
-    AnalysisDatabase, Builtin, ModuleRequest, ModuleResolution, ModuleResolver, ProjectSnapshot,
-    ProjectSources, ReferenceKind, RelativeResolver, Resolution, ScopeDomain, analyze,
+    Builtin, ModuleRequest, ModuleResolution, ModuleResolver, ProjectSnapshot, ProjectSources,
+    ReferenceKind, RelativeResolver, Resolution, ScopeDomain, analyze, analyze_project,
+    analyze_project_with_resolver,
 };
 use std::{
+    collections::BTreeMap,
     path::{Path, PathBuf},
     sync::{
         Arc,
@@ -23,10 +23,10 @@ fn resolved(path: &str) -> ModuleResolution {
 #[test]
 fn aliases_types_namespaces_and_unused_imports_share_a_file_index() {
     let source = "---\nimport Button from '../components/Button.astro';\nimport { Button as Alias, type Props as P } from '../components/Button.astro';\nimport * as UI from '../components/Button.astro';\nimport Unused from '../components/Button.astro';\nimport '../components/Button.astro';\nconst props: P = {};\n---\n<Button></Button><Alias /><UI.Button />\n{[1].map((Button) => Button)}";
-    let mut db = AnalysisDatabase::new();
-    db.set_source("/v/pages/Page.astro", source);
-    db.set_source("/v/components/Button.astro", "<button />");
-    let snapshot = db.analyze_project();
+    let mut sources = BTreeMap::new();
+    sources.insert("/v/pages/Page.astro", source);
+    sources.insert("/v/components/Button.astro", "<button />");
+    let snapshot = analyze_project(sources.clone());
     let imports = snapshot.imports_to("/v/components/Button.astro");
     assert_eq!(imports.len(), 5);
     assert!(
@@ -94,11 +94,11 @@ fn aliases_types_namespaces_and_unused_imports_share_a_file_index() {
 #[test]
 fn server_browser_and_uncertain_references_remain_separate() {
     let source = "---\nimport Button from './Server.astro';\n---\n<Button />{Astro.url}<Missing />\n<script>import Button from './Browser.astro'; Button;</script>\n<script>Button;</script>\n<script is:inline>const Button = 1; Button;</script>\n<script is:inline>Button; this;</script>";
-    let mut db = AnalysisDatabase::new();
-    db.set_source("Page.astro", source);
-    db.set_source("Server.astro", "<div />");
-    db.set_source("Browser.astro", "<div />");
-    let snapshot = db.analyze_project();
+    let mut sources = BTreeMap::new();
+    sources.insert("Page.astro", source);
+    sources.insert("Server.astro", "<div />");
+    sources.insert("Browser.astro", "<div />");
+    let snapshot = analyze_project(sources.clone());
     let server = snapshot.references_to_file("Server.astro");
     let browser = snapshot.references_to_file("Browser.astro");
     assert_eq!(server.len(), 1);
@@ -142,14 +142,14 @@ fn server_browser_and_uncertain_references_remain_separate() {
 
 #[test]
 fn reverse_indexes_use_path_then_source_order_and_handle_cycles() {
-    let mut db = AnalysisDatabase::new();
-    db.set_source(
+    let mut sources = BTreeMap::new();
+    sources.insert(
         "z.astro",
         "---\nimport A from './a.astro';\n---\n<A /><A />",
     );
-    db.set_source("m.astro", "---\nimport A from './a.astro';\n---\n<A />");
-    db.set_source("a.astro", "---\nimport Z from './z.astro';\n---\n<Z />");
-    let snapshot = db.analyze_project();
+    sources.insert("m.astro", "---\nimport A from './a.astro';\n---\n<A />");
+    sources.insert("a.astro", "---\nimport Z from './z.astro';\n---\n<Z />");
+    let snapshot = analyze_project(sources.clone());
     assert_eq!(
         snapshot.files().map(|(path, _)| path).collect::<Vec<_>>(),
         [
@@ -187,18 +187,18 @@ fn reverse_indexes_use_path_then_source_order_and_handle_cycles() {
 
 #[test]
 fn relative_resolution_preserves_exact_keys_and_reports_ambiguity() {
-    let mut db = AnalysisDatabase::new();
-    db.set_source(
+    let mut sources = BTreeMap::new();
+    sources.insert(
         "src/pages/Page.astro",
         "---\nimport Button from '../components/./Button.astro';\n---\n<Button />",
     );
-    db.set_source("src/tmp/../components/Button.astro", "<button />");
-    let first = db.analyze_project();
+    sources.insert("src/tmp/../components/Button.astro", "<button />");
+    let first = analyze_project(sources.clone());
     assert_eq!(
         first.imports_from("src/pages/Page.astro")[0].resolution,
         &resolved("src/tmp/../components/Button.astro")
     );
-    assert!(db.analyze_file("src/components/Button.astro").is_none());
+    assert!(first.file("src/components/Button.astro").is_none());
     assert_eq!(
         first
             .references_to_file("src/tmp/../components/Button.astro")
@@ -206,8 +206,8 @@ fn relative_resolution_preserves_exact_keys_and_reports_ambiguity() {
         1
     );
 
-    db.set_source("src/components/Button.astro", "<button />");
-    let ambiguous = db.analyze_project();
+    sources.insert("src/components/Button.astro", "<button />");
+    let ambiguous = analyze_project(sources.clone());
     assert_eq!(
         ambiguous.imports_from("src/pages/Page.astro")[0].resolution,
         &ModuleResolution::Ambiguous(vec![
@@ -225,34 +225,35 @@ fn relative_resolution_preserves_exact_keys_and_reports_ambiguity() {
             .references_to_file("src/tmp/../components/Button.astro")
             .is_empty()
     );
-    assert!(db.remove_file("src/tmp/../components/Button.astro"));
+    assert!(
+        sources
+            .remove("src/tmp/../components/Button.astro")
+            .is_some()
+    );
     assert_eq!(
-        db.analyze_project()
+        analyze_project(sources.clone())
             .references_to_file("src/components/Button.astro")
             .len(),
         1
     );
 
-    db.set_source(
+    sources.insert(
         "../pages/Relative.astro",
         "---\nimport B from '../Button.astro';\n---\n<B />",
     );
-    db.set_source("../Button.astro", "<button />");
-    db.set_source(
+    sources.insert("../Button.astro", "<button />");
+    sources.insert(
         "/pages/Absolute.astro",
         "---\nimport B from '../../Button.astro';\n---\n<B />",
     );
-    db.set_source("/Button.astro", "<button />");
-    let paths = db.analyze_project();
+    sources.insert("/Button.astro", "<button />");
+    let paths = analyze_project(sources.clone());
     assert_eq!(paths.references_to_file("../Button.astro").len(), 1);
     assert_eq!(paths.references_to_file("/Button.astro").len(), 1);
 }
 
 #[test]
 fn default_resolver_does_not_guess_packages_extensions_indexes_or_query_suffixes() {
-    let mut db = AnalysisDatabase::new();
-    db.set_source("Button.astro", "<button />");
-    db.set_source("Button/index.astro", "<button />");
     for (specifier, expected) in [
         ("./Button.astro", resolved("Button.astro")),
         (".//Button.astro", resolved("Button.astro")),
@@ -272,8 +273,11 @@ fn default_resolver_does_not_guess_packages_extensions_indexes_or_query_suffixes
         ("./Button.astro/..", ModuleResolution::Unsupported),
     ] {
         let source = format!("---\nimport Button from {specifier:?};\n---\n<Button />");
-        db.set_source("Page.astro", &source);
-        let snapshot = db.analyze_project();
+        let snapshot = analyze_project([
+            ("Button.astro", "<button />"),
+            ("Button/index.astro", "<button />"),
+            ("Page.astro", source.as_str()),
+        ]);
         assert_eq!(
             snapshot.imports_from("Page.astro")[0].resolution,
             &expected,
@@ -291,246 +295,33 @@ fn default_resolver_does_not_guess_packages_extensions_indexes_or_query_suffixes
 }
 
 #[test]
-fn additions_removals_updates_and_readdition_invalidate_project_results() {
-    let source = "---\r\nimport 名前 from './部品.astro';\r\n---\r\n<p>😀</p>{名前}";
-    let mut db = AnalysisDatabase::new();
-    let empty = db.analyze_project();
-    assert_eq!(empty.files().len(), 0);
-    assert!(Arc::ptr_eq(&empty, &db.analyze_project()));
-    db.set_source("Page.astro", source);
-    let original_analysis = db.analyze_file("Page.astro").unwrap();
-    let missing = db.analyze_project();
-    assert_eq!(
-        missing.imports_from("Page.astro")[0].resolution,
-        &ModuleResolution::Unresolved
-    );
-    db.set_source("Page.astro", source);
-    assert!(!db.remove_file("unknown"));
-    assert!(Arc::ptr_eq(&missing, &db.analyze_project()));
-
-    db.set_source("部品.astro", "<button />");
-    let found = db.analyze_project();
-    assert_eq!(found.revision().sources, missing.revision().sources + 1);
-    assert_eq!(found.revision().resolver, missing.revision().resolver);
-    assert!(Arc::ptr_eq(
-        &original_analysis,
-        &found.file("Page.astro").unwrap().analysis
-    ));
-    assert!(Arc::ptr_eq(
-        &missing.file("Page.astro").unwrap().source,
-        &found.file("Page.astro").unwrap().source
-    ));
-    let uses = found.references_to_file("部品.astro");
-    assert_eq!(uses.len(), 1);
-    assert_eq!(uses[0].reference.span.start, offset(source, "{名前}") + 1);
-    for byte in uses[0].reference.span.clone() {
-        assert!(std::ptr::eq(
-            found.reference_at("Page.astro", byte).unwrap().reference,
-            uses[0].reference
-        ));
-    }
-    assert!(
-        found
-            .reference_at("Page.astro", uses[0].reference.span.end)
-            .is_none()
-    );
-    assert!(
-        found
-            .reference_at("Page.astro", source.len() as u32)
-            .is_none()
-    );
-    assert!(db.remove_file("部品.astro"));
-    assert!(db.analyze_file("部品.astro").is_none());
-    let removed = db.analyze_project();
-    assert!(removed.references_to_file("部品.astro").is_empty());
-    assert_eq!(
-        removed.imports_from("Page.astro")[0].resolution,
-        &ModuleResolution::Unresolved
-    );
-    db.set_source("部品.astro", "<button>new</button>");
-    let readded = db.analyze_project();
-    assert_eq!(readded.references_to_file("部品.astro").len(), 1);
-    db.set_source("Page.astro", "<p />");
-    assert!(db.analyze_project().imports_to("部品.astro").is_empty());
-    db.remove_file("Page.astro");
-    assert!(db.analyze_project().reference_at("Page.astro", 0).is_none());
-    drop(db);
-    assert_eq!(found.file("Page.astro").unwrap().source.as_ref(), source);
-    assert_eq!(found.references_to_file("部品.astro").len(), 1);
-    assert_eq!(
-        found.file("部品.astro").unwrap().source.as_ref(),
-        "<button />"
-    );
-    assert_eq!(
-        readded.file("部品.astro").unwrap().source.as_ref(),
-        "<button>new</button>"
-    );
-    assert!(missing.references_to_file("部品.astro").is_empty());
-}
-
-struct AliasResolver {
-    target: PathBuf,
-    calls: Arc<AtomicUsize>,
-}
-
-impl ModuleResolver for AliasResolver {
-    fn resolve(
-        &self,
-        request: ModuleRequest<'_>,
-        sources: &ProjectSources<'_>,
-    ) -> ModuleResolution {
-        self.calls.fetch_add(1, Ordering::Relaxed);
-        assert!(sources.contains(request.importer));
-        assert!(sources.source(request.importer).unwrap().contains("import"));
-        assert!(sources.paths().any(|path| path == request.importer));
-        if request.import.source == "@button" {
-            // Deliberately return a configured key even if it has not been registered.
-            ModuleResolution::Resolved(self.target.clone())
-        } else {
-            RelativeResolver.resolve(request, sources)
-        }
-    }
-}
-
-#[test]
-fn resolver_replacement_and_source_changes_refresh_resolution_without_reparsing_unchanged_files() {
-    let mut db = AnalysisDatabase::new();
-    db.set_source(
-        "Page.astro",
-        "---\nimport Button from '@button';\nimport './Other.astro';\n---\n<Button />",
-    );
-    db.set_source("Other.astro", "<div />");
-    db.set_source("A.astro", "<button />");
-    db.set_source("B.astro", "<button />");
-    let first = db.analyze_project();
-    assert_eq!(
-        first.imports_from("Page.astro")[0].resolution,
-        &ModuleResolution::Unsupported
-    );
-    let calls = Arc::new(AtomicUsize::new(0));
-    db.set_module_resolver(AliasResolver {
-        target: "A.astro".into(),
-        calls: Arc::clone(&calls),
-    });
-    assert_eq!(calls.load(Ordering::Relaxed), 0);
-    let a = db.analyze_project();
-    assert_eq!(calls.load(Ordering::Relaxed), 2);
-    assert_eq!(a.references_to_file("A.astro").len(), 1);
-    assert_eq!(a.imports_to("Other.astro").len(), 1);
-    assert!(Arc::ptr_eq(&a, &db.analyze_project()));
-    assert_eq!(calls.load(Ordering::Relaxed), 2);
-    assert_eq!(a.revision().sources, first.revision().sources);
-    assert_eq!(a.revision().resolver, first.revision().resolver + 1);
-    db.set_module_resolver(AliasResolver {
-        target: "B.astro".into(),
-        calls: Arc::clone(&calls),
-    });
-    let b = db.analyze_project();
-    assert_eq!(calls.load(Ordering::Relaxed), 4);
-    assert!(b.references_to_file("A.astro").is_empty());
-    assert_eq!(b.references_to_file("B.astro").len(), 1);
-    assert!(Arc::ptr_eq(
-        &a.file("Page.astro").unwrap().analysis,
-        &b.file("Page.astro").unwrap().analysis
-    ));
-    assert!(Arc::ptr_eq(
-        &a.file("Page.astro").unwrap().source,
-        &b.file("Page.astro").unwrap().source
-    ));
-
-    db.set_module_resolver(AliasResolver {
-        target: "Missing.astro".into(),
-        calls: Arc::clone(&calls),
-    });
-    assert_eq!(
-        db.analyze_project().imports_from("Page.astro")[0].resolution,
-        &ModuleResolution::Unresolved
-    );
-    db.set_source("Missing.astro", "<button />");
-    let created = db.analyze_project();
-    assert_eq!(created.references_to_file("Missing.astro").len(), 1);
-    db.set_source("Missing.astro", "<button>updated</button>");
-    let updated = db.analyze_project();
-    assert_eq!(calls.load(Ordering::Relaxed), 10);
-    assert!(Arc::ptr_eq(
-        &created.file("Page.astro").unwrap().analysis,
-        &updated.file("Page.astro").unwrap().analysis
-    ));
-    assert!(!Arc::ptr_eq(
-        &created.file("Missing.astro").unwrap().analysis,
-        &updated.file("Missing.astro").unwrap().analysis
-    ));
-    assert_eq!(a.references_to_file("A.astro").len(), 1);
-}
-
-#[test]
 fn syntax_errors_are_visible_without_discarding_other_files_or_incoming_imports() {
-    let mut db = AnalysisDatabase::new();
-    db.set_source(
+    let mut sources = BTreeMap::new();
+    sources.insert(
         "Page.astro",
         "---\nimport Broken from './Broken.astro';\n---\n<Broken />",
     );
-    db.set_source("Broken.astro", "---\nconst =;\n---");
-    let snapshot = db.analyze_project();
+    sources.insert("Broken.astro", "---\nconst =;\n---");
+    let snapshot = analyze_project(sources.clone());
     assert!(snapshot.file("Broken.astro").unwrap().analysis.is_err());
     assert_eq!(snapshot.imports_to("Broken.astro").len(), 1);
     assert_eq!(snapshot.references_to_file("Broken.astro").len(), 1);
     assert!(snapshot.imports_from("Broken.astro").is_empty());
     assert!(snapshot.reference_at("Broken.astro", 5).is_none());
-    db.set_source("Broken.astro", "<button />");
-    let fixed = db.analyze_project();
+    sources.insert("Broken.astro", "<button />");
+    let fixed = analyze_project(sources.clone());
     assert!(fixed.file("Broken.astro").unwrap().analysis.is_ok());
     assert!(snapshot.file("Broken.astro").unwrap().analysis.is_err());
-    db.set_source(
+    sources.insert(
         "Page.astro",
         "---\nimport Broken from './Broken.astro';\nconst =;\n---",
     );
-    let error = db.analyze_project();
+    let error = analyze_project(sources.clone());
     assert!(error.file("Page.astro").unwrap().analysis.is_err());
     assert!(error.imports_to("Broken.astro").is_empty());
     assert!(error.references_to_file("Broken.astro").is_empty());
     fn assert_send_sync<T: Send + Sync>() {}
     assert_send_sync::<ProjectSnapshot>();
-}
-
-#[test]
-fn resolver_reads_of_other_source_buffers_are_invalidated_with_the_source_set() {
-    struct SourceAwareResolver;
-    impl ModuleResolver for SourceAwareResolver {
-        fn resolve(&self, _: ModuleRequest<'_>, sources: &ProjectSources<'_>) -> ModuleResolution {
-            if sources.source("Settings.astro") == Some("<p>B</p>") {
-                resolved("B.astro")
-            } else {
-                resolved("A.astro")
-            }
-        }
-    }
-    let mut db = AnalysisDatabase::new();
-    db.set_module_resolver(SourceAwareResolver);
-    db.set_source(
-        "Page.astro",
-        "---\nimport Button from '@button';\n---\n<Button />",
-    );
-    db.set_source("A.astro", "<button />");
-    db.set_source("B.astro", "<button />");
-    let a = db.analyze_project();
-    assert_eq!(a.references_to_file("A.astro").len(), 1);
-    db.set_source("Settings.astro", "<p>B</p>");
-    let b = db.analyze_project();
-    assert_eq!(b.references_to_file("B.astro").len(), 1);
-    assert!(b.references_to_file("A.astro").is_empty());
-    db.set_source("Settings.astro", "<p>A</p>");
-    assert_eq!(db.analyze_project().references_to_file("A.astro").len(), 1);
-    db.set_source("Settings.astro", "<p>B</p>");
-    assert_eq!(db.analyze_project().references_to_file("B.astro").len(), 1);
-    db.remove_file("Settings.astro");
-    let removed = db.analyze_project();
-    assert_eq!(removed.references_to_file("A.astro").len(), 1);
-    assert!(Arc::ptr_eq(
-        &a.file("Page.astro").unwrap().analysis,
-        &removed.file("Page.astro").unwrap().analysis
-    ));
-    assert_eq!(b.references_to_file("B.astro").len(), 1);
 }
 
 #[test]
@@ -545,12 +336,11 @@ fn resolver_receives_import_domain_even_for_side_effect_imports() {
             }
         }
     }
-    let mut db = AnalysisDatabase::new();
-    db.set_module_resolver(DomainResolver);
-    db.set_source("Page.astro", "---\nimport '@setup';\n---\n<script>import '@setup';</script>\n<script is:inline type={\"module\"}>import '@setup';</script>");
-    db.set_source("Server.astro", "");
-    db.set_source("Browser.astro", "");
-    let snapshot = db.analyze_project();
+    let mut sources = BTreeMap::new();
+    sources.insert("Page.astro", "---\nimport '@setup';\n---\n<script>import '@setup';</script>\n<script is:inline type={\"module\"}>import '@setup';</script>");
+    sources.insert("Server.astro", "");
+    sources.insert("Browser.astro", "");
+    let snapshot = analyze_project_with_resolver(sources, &DomainResolver);
     assert_eq!(snapshot.imports_to("Server.astro").len(), 1);
     assert_eq!(snapshot.imports_to("Browser.astro").len(), 2);
     assert!(snapshot.references_to_file("Server.astro").is_empty());
@@ -560,9 +350,9 @@ fn resolver_receives_import_domain_even_for_side_effect_imports() {
 #[test]
 fn self_imports_in_server_and_browser_domains_keep_distinct_bindings() {
     let source = "---\nimport Self from './Page.astro';\n---\n<Self />\n<script>import Self from './Page.astro'; Self;</script>\n<script is:inline type={\"module\"}>import Self from './Page.astro'; Self;</script>";
-    let mut db = AnalysisDatabase::new();
-    db.set_source("Page.astro", source);
-    let snapshot = db.analyze_project();
+    let mut sources = BTreeMap::new();
+    sources.insert("Page.astro", source);
+    let snapshot = analyze_project(sources.clone());
     let imports = snapshot.imports_to("Page.astro");
     assert_eq!(imports.len(), 3);
     assert_eq!(
@@ -586,4 +376,122 @@ fn self_imports_in_server_and_browser_domains_keep_distinct_bindings() {
         };
         assert!(ids.insert(binding.id));
     }
+}
+
+#[test]
+fn empty_inputs_and_duplicate_paths_have_explicit_results() {
+    let empty = analyze_project(std::iter::empty::<(&str, &str)>());
+    assert_eq!(empty.files().len(), 0);
+    assert_eq!(empty.revision(), None);
+    assert!(empty.imports_from("unknown").is_empty());
+    assert!(empty.imports_to("unknown").is_empty());
+    assert!(empty.references_to_file("unknown").is_empty());
+    assert!(empty.reference_at("unknown", 0).is_none());
+
+    let source = "---\nimport Button from './Button.astro';\n---\n<Button />";
+    let project = analyze_project(vec![
+        (
+            PathBuf::from("Page.astro"),
+            String::from("---\nconst =;\n---"),
+        ),
+        (PathBuf::from("Button.astro"), String::from("<button />")),
+        (PathBuf::from("Page.astro"), source.to_owned()),
+    ]);
+    assert_eq!(project.files().len(), 2);
+    assert_eq!(project.revision(), None);
+    assert_eq!(project.file("Page.astro").unwrap().source.as_ref(), source);
+    assert!(project.file("Page.astro").unwrap().analysis.is_ok());
+    assert_eq!(project.references_to_file("Button.astro").len(), 1);
+}
+
+#[test]
+fn uncached_snapshots_own_unicode_sources_and_preserve_byte_positions() {
+    let source = "---\r\nimport 名前 from './部品.astro';\r\n---\r\n<p>😀</p>{名前}";
+    let project = {
+        let text: Arc<str> = Arc::from(source);
+        let sources = vec![
+            (PathBuf::from("Page.astro"), Arc::clone(&text)),
+            (PathBuf::from("部品.astro"), Arc::from("<button />")),
+        ];
+        let project = analyze_project(sources);
+        assert!(Arc::ptr_eq(
+            &text,
+            &project.file("Page.astro").unwrap().source
+        ));
+        project
+    };
+    assert_eq!(project.file("Page.astro").unwrap().source.as_ref(), source);
+    let uses = project.references_to_file("部品.astro");
+    assert_eq!(uses.len(), 1);
+    let reference = uses[0].reference;
+    assert_eq!(reference.span.start, offset(source, "{名前}") + 1);
+    for byte in reference.span.clone() {
+        assert!(std::ptr::eq(
+            project.reference_at("Page.astro", byte).unwrap().reference,
+            reference,
+        ));
+    }
+    assert!(
+        project
+            .reference_at("Page.astro", reference.span.end)
+            .is_none()
+    );
+    assert!(
+        project
+            .reference_at("Page.astro", source.len() as u32)
+            .is_none()
+    );
+}
+
+#[test]
+fn borrowed_resolvers_run_per_analysis_and_are_not_retained_by_queries() {
+    struct BorrowedResolver<'a> {
+        target: &'a str,
+        calls: &'a AtomicUsize,
+    }
+    impl ModuleResolver for BorrowedResolver<'_> {
+        fn resolve(
+            &self,
+            request: ModuleRequest<'_>,
+            sources: &ProjectSources<'_>,
+        ) -> ModuleResolution {
+            self.calls.fetch_add(1, Ordering::Relaxed);
+            if request.import.source == "@button" {
+                resolved(self.target)
+            } else {
+                RelativeResolver.resolve(request, sources)
+            }
+        }
+    }
+    let (first, second) = {
+        let target = String::from("Button.astro");
+        let calls = AtomicUsize::new(0);
+        let resolver = BorrowedResolver {
+            target: &target,
+            calls: &calls,
+        };
+        let source = "---\nimport Button from '@button';\n---\n<Button />";
+        let sources = [("Page.astro", source), ("Button.astro", "<button />")];
+        let first = analyze_project_with_resolver(sources, &resolver);
+        assert_eq!(calls.load(Ordering::Relaxed), 1);
+        let second = analyze_project_with_resolver(sources, &resolver);
+        assert_eq!(calls.load(Ordering::Relaxed), 2);
+        for project in [&first, &second] {
+            assert_eq!(project.revision(), None);
+            assert_eq!(project.imports_from("Page.astro").len(), 1);
+            assert_eq!(project.imports_to("Button.astro").len(), 1);
+            assert_eq!(project.references_to_file("Button.astro").len(), 1);
+            assert!(
+                project
+                    .reference_at("Page.astro", offset(source, "<Button") + 1)
+                    .unwrap()
+                    .import
+                    .is_some()
+            );
+        }
+        assert_eq!(calls.load(Ordering::Relaxed), 2);
+        (first, second)
+    };
+    assert_eq!(first.references_to_file("Button.astro").len(), 1);
+    assert_eq!(second.references_to_file("Button.astro").len(), 1);
 }

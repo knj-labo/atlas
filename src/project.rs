@@ -1,13 +1,66 @@
 use crate::{
     AnalysisError, DeclarationId, DeclarationKind, FileFacts, Import, ModuleRequest,
-    ModuleResolution, ModuleResolver, ProjectSources, Reference, ReferenceId, Resolution,
-    ScopeDomain,
+    ModuleResolution, ModuleResolver, ProjectSources, Reference, ReferenceId, RelativeResolver,
+    Resolution, ScopeDomain, analyze,
 };
 use std::{
     collections::{BTreeMap, HashMap},
     path::{Path, PathBuf},
     sync::Arc,
 };
+
+/// Analyze Astro sources and index their direct imports without a cache.
+///
+/// Available with default features. Each call analyzes all supplied files and
+/// resolves imports using [`RelativeResolver`]. The returned snapshot owns its
+/// sources and results; later queries do not parse or resolve anything again.
+/// Paths follow [`PathBuf`] equality, with the last source winning for duplicate
+/// keys. No filesystem access is performed. Syntax errors are retained in each
+/// [`ProjectFile`], and [`ProjectSnapshot::revision`] returns `None`.
+///
+/// ```
+/// let project = atlas::analyze_project([
+///     ("Button.astro", "<button />"),
+///     ("Page.astro", "---\nimport Button from './Button.astro';\n---\n<Button />"),
+/// ]);
+/// assert_eq!(project.references_to_file("Button.astro").len(), 1);
+/// assert_eq!(project.revision(), None);
+/// ```
+pub fn analyze_project<P, S>(sources: impl IntoIterator<Item = (P, S)>) -> ProjectSnapshot
+where
+    P: Into<PathBuf>,
+    S: Into<Arc<str>>,
+{
+    analyze_project_with_resolver(sources, &RelativeResolver)
+}
+
+/// Analyze Astro sources without a cache, using a caller-supplied resolver.
+///
+/// The input, ownership, and error contracts match [`analyze_project`]. The
+/// resolver is borrowed only during this call and is not retained in the
+/// snapshot. Each call analyzes the final source for each path and resolves all
+/// of its static imports anew, even when the input matches an earlier call.
+pub fn analyze_project_with_resolver<P, S>(
+    sources: impl IntoIterator<Item = (P, S)>,
+    resolver: &dyn ModuleResolver,
+) -> ProjectSnapshot
+where
+    P: Into<PathBuf>,
+    S: Into<Arc<str>>,
+{
+    let mut unique_sources: BTreeMap<PathBuf, Arc<str>> = BTreeMap::new();
+    for (path, source) in sources {
+        unique_sources.insert(path.into(), source.into());
+    }
+    let files = unique_sources
+        .into_iter()
+        .map(|(path, source)| {
+            let analysis = Arc::new(analyze(&source));
+            (path, ProjectFile { source, analysis })
+        })
+        .collect();
+    ProjectSnapshot::build(None, files, resolver)
+}
 
 /// Database-local versions of the source set and module resolver settings.
 /// Revisions from different databases are not comparable identities.
@@ -67,9 +120,10 @@ struct ImportUse {
     reference: ReferenceId,
 }
 
-/// Immutable file analyses and direct import indexes for one project revision.
+/// Immutable file analyses and direct import indexes for one source snapshot.
 ///
-/// Created by `AnalysisDatabase::analyze_project` with the `incremental` feature.
+/// Created by [`analyze_project`] or [`analyze_project_with_resolver`], or by
+/// `AnalysisDatabase::analyze_project` with the optional `incremental` feature.
 /// Sources, local facts, and resolutions all belong to this snapshot. It remains
 /// usable after database updates or destruction. Returned records borrow this
 /// snapshot; local IDs must be paired with their file and this result.
@@ -81,7 +135,7 @@ struct ImportUse {
 /// re-exports, dynamic imports, script `src`, CSS, or transitive dependencies.
 #[derive(Debug)]
 pub struct ProjectSnapshot {
-    revision: ProjectRevision,
+    revision: Option<ProjectRevision>,
     files: BTreeMap<PathBuf, ProjectFile>,
     dependencies: Vec<Dependency>,
     indexes: BTreeMap<PathBuf, FileIndex>,
@@ -90,7 +144,9 @@ pub struct ProjectSnapshot {
 }
 
 impl ProjectSnapshot {
-    pub fn revision(&self) -> ProjectRevision {
+    /// Database-local source and resolver versions, or `None` for an uncached
+    /// analysis. Versions from separate databases are not comparable.
+    pub fn revision(&self) -> Option<ProjectRevision> {
         self.revision
     }
 
@@ -191,7 +247,7 @@ impl ProjectSnapshot {
     }
 
     pub(crate) fn build(
-        revision: ProjectRevision,
+        revision: Option<ProjectRevision>,
         files: BTreeMap<PathBuf, ProjectFile>,
         resolver: &dyn ModuleResolver,
     ) -> Self {

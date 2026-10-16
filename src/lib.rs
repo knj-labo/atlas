@@ -1,7 +1,8 @@
-//! Owned facts from semantic analysis of a single Astro source file.
-//! Enable the `incremental` feature for an `AnalysisDatabase` that memoizes
-//! those facts for caller-supplied file paths and source text, and creates
-//! immutable `ProjectSnapshot` results with direct import and file-usage queries.
+//! Owned facts and read-only queries for Astro sources.
+//! Use [`analyze`] for one file or [`analyze_project`] for direct import and
+//! file-usage queries over caller-supplied paths and source text. Neither needs
+//! a cache. Enable `incremental` for an `AnalysisDatabase` that memoizes file
+//! analyses and project snapshots.
 //!
 //! ```
 //! let facts = atlas::analyze("<Missing client:visible />").unwrap();
@@ -34,10 +35,8 @@ mod facts;
 #[cfg(feature = "incremental")]
 mod incremental;
 mod markup;
-#[cfg(feature = "incremental")]
 mod project;
 mod query;
-#[cfg(feature = "incremental")]
 mod resolver;
 mod scripts;
 mod semantic;
@@ -48,9 +47,10 @@ pub use analyze::analyze;
 pub use facts::*;
 #[cfg(feature = "incremental")]
 pub use incremental::AnalysisDatabase;
-#[cfg(feature = "incremental")]
-pub use project::{ProjectFile, ProjectImport, ProjectReference, ProjectRevision, ProjectSnapshot};
-#[cfg(feature = "incremental")]
+pub use project::{
+    ProjectFile, ProjectImport, ProjectReference, ProjectRevision, ProjectSnapshot,
+    analyze_project, analyze_project_with_resolver,
+};
 pub use resolver::{
     ModuleRequest, ModuleResolution, ModuleResolver, ProjectSources, RelativeResolver,
 };

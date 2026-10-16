@@ -30,7 +30,7 @@ pub struct ModuleRequest<'a> {
 
 /// Immutable source buffers belonging to the project being resolved.
 ///
-/// Paths use the same exact keys as `AnalysisDatabase`. No filesystem access,
+/// Paths use the caller's keys with [`PathBuf`] equality. No filesystem access,
 /// canonicalization, case folding, or symlink resolution is performed.
 pub struct ProjectSources<'a> {
     sources: &'a BTreeMap<PathBuf, Arc<str>>,
@@ -70,9 +70,11 @@ impl<'a> ProjectSources<'a> {
 ///
 /// Implementations must be deterministic functions of their immutable settings,
 /// request, and supplied source snapshot. Do not read changing external state:
-/// supply its contents as settings and call `AnalysisDatabase::set_module_resolver`
-/// whenever those settings change. Project results memoize resolver output.
-/// Return exact registered path keys for `Resolved`; the database converts a
+/// supply its contents as immutable settings for each analysis. With the optional
+/// `incremental` API, replace the resolver using
+/// `AnalysisDatabase::set_module_resolver` whenever its settings change.
+/// Snapshots retain resolver output; querying them never invokes the resolver.
+/// Return exact supplied path keys for `Resolved`; snapshot construction converts a
 /// result naming an absent key to `Unresolved`.
 ///
 /// ```
@@ -87,8 +89,11 @@ impl<'a> ProjectSources<'a> {
 ///         }
 ///     }
 /// }
-/// let mut db = atlas::AnalysisDatabase::new();
-/// db.set_module_resolver(WithAlias);
+/// let project = atlas::analyze_project_with_resolver([
+///     ("Page.astro", "---\nimport Button from '@ui/button';\n---\n<Button />"),
+///     ("src/Button.astro", "<button />"),
+/// ], &WithAlias);
+/// assert_eq!(project.references_to_file("src/Button.astro").len(), 1);
 /// ```
 pub trait ModuleResolver: Send + Sync {
     fn resolve(&self, request: ModuleRequest<'_>, sources: &ProjectSources<'_>)

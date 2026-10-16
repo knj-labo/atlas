@@ -1,7 +1,7 @@
 # atlas
 
 Rust analysis library for agents inspecting declarations, uses, and dependencies
-before changing code. The current API analyzes one Astro file, including its
+before changing code. The current API analyzes Astro files, including their
 frontmatter, template expressions, browser scripts, and CSS facts.
 
 ```rust
@@ -29,44 +29,65 @@ facts and are not searched by these methods. Syntax failures use the existing
 
 IDs are local to one analysis result. After a source update, obtain IDs from the
 new result. Numeric IDs can be reused; queries cannot recognize IDs from an older
-result or another file. With the optional `incremental` feature,
-`AnalysisDatabase` caches analyses of caller-supplied paths and text. The caller
-handles file access and change notifications.
+result or another file. Callers supply source text and handle file access.
 
-Enable `incremental` for project-wide import lookup over registered Astro buffers:
+Project-wide import lookup is available with default features, without a cache:
 
 ```rust
-let mut db = atlas::AnalysisDatabase::new();
-db.set_source("Button.astro", "<button />");
-db.set_source("Page.astro", "---\nimport Button from './Button.astro';\n---\n<Button />");
-let project = db.analyze_project();
+let project = atlas::analyze_project([
+    ("Button.astro", "<button />"),
+    ("Page.astro", "---\nimport Button from './Button.astro';\n---\n<Button />"),
+]);
 assert_eq!(project.imports_to("Button.astro").len(), 1);
 assert_eq!(project.references_to_file("Button.astro").len(), 1);
+assert_eq!(project.revision(), None);
 ```
 
-`ProjectSnapshot` retains the exact sources and analyses for its revision.
+`analyze_project` accepts an iterator of path/source pairs. Paths convert into
+`PathBuf`, and sources into `Arc<str>` (including `&str` and `String`). Duplicate
+path keys use the last supplied source. Each call analyzes the final sources and
+builds their import indexes anew; querying the resulting snapshot performs no
+further parsing or resolution. `analyze_project_with_resolver(sources, &resolver)`
+uses a custom `ModuleResolver`, borrowed only for that call.
+
+`ProjectSnapshot` retains the exact sources and analyses.
 `imports_from(path)` lists dependencies and their `ModuleResolution`;
 `imports_to(path)` lists direct importers, including unused and side-effect
 imports. `references_to_file(path)` lists definite lexical uses of those imports,
 and `reference_at(path, byte)` combines a local reference with its originating
 import. Results borrow existing facts and are ordered by path, then source position.
 Inspect `file(path).analysis` for syntax errors; failed importers have no indexed
-outgoing imports. A module may resolve to a registered file with an analysis error.
+outgoing imports. A module may resolve to a supplied file with an analysis error.
 
-The default `RelativeResolver` matches explicit relative paths against registered
+The default `RelativeResolver` matches explicit relative paths against supplied
 virtual files, normalizing dot/parent components and repeated separators without
-filesystem I/O. It preserves the exact registered keys and reports ambiguous matches. Extension
-inference, directory indexes, packages, aliases, and query/hash suffixes are not
-implemented by this resolver. Directory forms ending in `/`, `/.`, or `/..` are
-also unsupported. Use `set_module_resolver` with a `ModuleResolver`
-implementation for other policies. Replace the resolver when its settings change.
+filesystem I/O. It preserves the supplied keys and reports ambiguous matches.
+Extension inference, directory indexes, packages, aliases, and query/hash suffixes
+are not implemented by this resolver. Directory forms ending in `/`, `/.`, or
+`/..` are also unsupported.
 
-Source changes, file registration/removal through `remove_file`, and resolver
-replacement invalidate the project snapshot. Unchanged file analyses are reused;
-previous snapshots remain valid. `revision()` identifies source and resolver
-versions within one database. This stage indexes files, not exported declarations:
-named-export validation, re-exports, dynamic imports, and transitive traversal are
-not implemented. See [ADR 0003](docs/adr/0003-project-import-search.md).
+Enable the optional `incremental` feature to reuse analyses across calls:
+
+```rust
+let mut db = atlas::AnalysisDatabase::new();
+db.set_source("Button.astro", "<button />");
+db.set_source("Page.astro", "---\nimport Button from './Button.astro';\n---\n<Button />");
+let project = db.analyze_project();
+assert_eq!(project.references_to_file("Button.astro").len(), 1);
+assert!(project.revision().is_some());
+```
+
+`AnalysisDatabase` caches file analyses and project snapshots. Source changes,
+file registration/removal through `remove_file`, and resolver replacement through
+`set_module_resolver` invalidate the project snapshot. Unchanged file analyses
+are reused; previous snapshots remain valid. Callers handle change notifications
+and replace the resolver when its settings change. `revision()` returns `Some`
+with source and resolver versions within that database, or `None` for uncached
+analysis. The default dependency graph does not include Salsa.
+
+This stage indexes files, not exported declarations: named-export validation,
+re-exports, dynamic imports, and transitive traversal are not implemented.
+See [ADR 0003](docs/adr/0003-project-import-search.md).
 
 Planned stages are standalone JavaScript, then standalone TypeScript and external
 type analysis. Module resolution has its own adapter interface; no TypeScript
