@@ -1,9 +1,12 @@
-use crate::{AnalysisError, FileFacts, analyze};
+use crate::{
+    AnalysisError, FileFacts, ModuleResolver, ProjectFile, ProjectRevision, ProjectSnapshot,
+    RelativeResolver, analyze,
+};
 use salsa::Setter;
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, OnceLock},
 };
 
 /// On-demand, file-level analysis with owned, shared results.
@@ -14,7 +17,8 @@ use std::{
 ///
 /// Registration and updates do not run analysis. The next query for a changed
 /// file analyzes its entire source. Other files reuse their memoized results.
-/// Inputs and cached results are retained until the database is dropped;
+/// Files may be removed with [`Self::remove_file`]. Internal Salsa inputs remain
+/// allocated until the database is dropped;
 /// previously returned [`Arc`] values can outlive both updates and the database.
 /// Facts IDs remain local to each result, including across source revisions.
 ///
@@ -35,10 +39,24 @@ use std::{
 /// drop(db);
 /// assert_eq!(first.as_ref().as_ref().unwrap().components[0].name, "Button");
 /// ```
-#[derive(Default)]
 pub struct AnalysisDatabase {
     database: Database,
     files: HashMap<PathBuf, SourceFile>,
+    resolver: Box<dyn ModuleResolver>,
+    revision: ProjectRevision,
+    project: OnceLock<Arc<ProjectSnapshot>>,
+}
+
+impl Default for AnalysisDatabase {
+    fn default() -> Self {
+        Self {
+            database: Database::default(),
+            files: HashMap::new(),
+            resolver: Box::new(RelativeResolver),
+            revision: ProjectRevision::default(),
+            project: OnceLock::new(),
+        }
+    }
 }
 
 impl AnalysisDatabase {
@@ -53,13 +71,89 @@ impl AnalysisDatabase {
         let path = path.into();
         let source = source.into();
         if let Some(&file) = self.files.get(&path) {
-            if file.text(&self.database) != source.as_str() {
-                file.set_text(&mut self.database).to(source);
+            if file.text(&self.database).as_ref() != source.as_str() {
+                file.set_text(&mut self.database).to(source.into());
+                self.sources_changed();
             }
         } else {
-            let file = SourceFile::new(&self.database, source);
+            let file = SourceFile::new(&self.database, Arc::<str>::from(source));
             self.files.insert(path, file);
+            self.sources_changed();
         }
+    }
+
+    /// Remove a registered path and invalidate project resolution and indexes.
+    /// Returns whether the path existed. Earlier returned results remain valid.
+    /// Internal Salsa storage is retained until database destruction.
+    pub fn remove_file(&mut self, path: impl AsRef<Path>) -> bool {
+        if self.files.remove(path.as_ref()).is_none() {
+            return false;
+        }
+        self.sources_changed();
+        true
+    }
+
+    /// Replace the module resolver and its immutable settings.
+    /// Every call starts a new resolver revision and invalidates the project
+    /// snapshot, including previously missing imports. File analyses are reused.
+    pub fn set_module_resolver(&mut self, resolver: impl ModuleResolver + 'static) {
+        self.resolver = Box::new(resolver);
+        self.revision.resolver = self
+            .revision
+            .resolver
+            .checked_add(1)
+            .expect("resolver revision overflow");
+        self.project.take();
+    }
+
+    /// Analyze registered Astro buffers and index direct imports and their uses.
+    ///
+    /// Unchanged calls reuse the same snapshot. Any source addition, update,
+    /// removal, or resolver replacement rebuilds the project index on demand;
+    /// unchanged file analyses reuse their existing memos. No files are read
+    /// from disk. Syntax errors remain available in each [`ProjectFile`].
+    ///
+    /// ```
+    /// let mut db = atlas::AnalysisDatabase::new();
+    /// db.set_source("Button.astro", "<button />");
+    /// db.set_source("Page.astro", "---\nimport Button from './Button.astro';\n---\n<Button />");
+    /// let project = db.analyze_project();
+    /// assert_eq!(project.imports_to("Button.astro").len(), 1);
+    /// assert_eq!(project.references_to_file("Button.astro").len(), 1);
+    /// assert!(db.remove_file("Button.astro"));
+    /// assert!(db.analyze_project().references_to_file("Button.astro").is_empty());
+    /// assert_eq!(project.references_to_file("Button.astro").len(), 1);
+    /// ```
+    pub fn analyze_project(&self) -> Arc<ProjectSnapshot> {
+        Arc::clone(self.project.get_or_init(|| {
+            let files = self
+                .files
+                .iter()
+                .map(|(path, &file)| {
+                    (
+                        path.clone(),
+                        ProjectFile {
+                            source: Arc::clone(file.text(&self.database)),
+                            analysis: analyze_input(&self.database, file),
+                        },
+                    )
+                })
+                .collect();
+            Arc::new(ProjectSnapshot::build(
+                self.revision,
+                files,
+                self.resolver.as_ref(),
+            ))
+        }))
+    }
+
+    fn sources_changed(&mut self) {
+        self.revision.sources = self
+            .revision
+            .sources
+            .checked_add(1)
+            .expect("source revision overflow");
+        self.project.take();
     }
 
     /// Analyze a registered file, reusing the cached result when possible.
@@ -88,8 +182,8 @@ impl salsa::Database for Database {}
 
 #[salsa::input]
 struct SourceFile {
-    #[returns(deref)]
-    text: String,
+    #[returns(ref)]
+    text: Arc<str>,
 }
 
 #[salsa::tracked(returns(clone))]
@@ -117,7 +211,7 @@ mod tests {
         (
             AnalysisDatabase {
                 database: Database { storage },
-                files: HashMap::new(),
+                ..AnalysisDatabase::default()
             },
             executions,
         )

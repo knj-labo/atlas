@@ -1,4 +1,4 @@
-# Single-file specification coverage
+# Analysis specification coverage
 
 The release target is Astro **7.0.6**, with the published **@astrojs/compiler-rs 0.3.0** package as a reproducible syntax/transform oracle. This matrix defines the analysis contract; it does not claim to implement the Astro runtime or every project-level feature. Every supported row names a Rust test or a pinned compiler fixture. Results below were measured, not inferred solely from upstream code.
 
@@ -11,7 +11,7 @@ The release target is Astro **7.0.6**, with the published **@astrojs/compiler-rs
 
 `analyze` returns `Err` for parser, semantic syntax, or standard-CSS syntax errors. Parsing errors gate semantic analysis. Astro validity diagnostics are in successful facts, with phase, severity, code and owned labels. Undefined identifiers are references, not syntax errors. A successful result may have Astro error diagnostics. Known directives receive Valid, Invalid, Dynamic or RequiresProjectContext status. Custom directives remain UnknownDirective; this is not an assertion that a configured project rejects them.
 
-IDs index their containing arrays, and do not correspond to Oxc's numeric IDs. Declaration and scope IDs are file-local; CSS rule/declaration IDs are style-local. References are ordered by source position. Elements retain tree traversal order and parent IDs; styles retain element/attribute traversal order. Raw source text and spans always use the original input, including decoded CSS attributes.
+IDs index their containing arrays, and do not correspond to Oxc's numeric IDs. Declaration and scope IDs are local to one analysis result, not stable across source revisions; CSS rule/declaration IDs are style-local. References are ordered by source position. Elements retain tree traversal order and parent IDs; styles retain element/attribute traversal order. Raw source text and spans always use the original input, including decoded CSS attributes.
 
 ## Coverage matrix
 
@@ -56,13 +56,40 @@ All rows marked Supported below passed. Rust tests are in [spec.rs](../tests/spe
 | Malformed input vs unresolved identifiers | Syntax Err, semantic gated; undefined tag remains Ok/Unresolved | Supported | phase-1 malformed/undefined tests; `invalid-*` fixtures |
 | Routing, collections, middleware, integrations, custom renderers/directives, actions, adapters | Expressions/imports remain available as facts | Project required; no project graph or config execution | Contract boundary; no runtime implementation |
 | File-level incremental analysis | Optional `AnalysisDatabase` manages caller-supplied paths and text; unchanged files reuse owned results and syntax errors | Supported with `incremental`; no filesystem access or import resolution | `incremental` unit tests; `tests/incremental.rs` |
+| Project import and file-usage search | Immutable source/analysis snapshots, explicit module resolution states, direct importers and definite lexical uses, versioned invalidation on source/file/resolver changes | Supported with `incremental`; default resolver matches explicit relative virtual paths; exported declaration lookup is outside this stage | `tests/project.rs`; [ADR 0003](adr/0003-project-import-search.md) |
 | TS checking, rendering, runtime APIs, browser DOM, CSS cascade, preprocessors, CLI | Not implemented | Out of scope | Contract boundary |
+
+## File-local search API
+
+`FileFacts::declarations_named(name)` returns borrowed `Binding` records with an exact, case-sensitive name match. Each lexical declaration keeps its own ID and scope; an import is found under its local alias. `FileFacts::reference_at(offset)` returns a borrowed `Reference` when `span.start <= offset < span.end`, retaining its complete resolution state. Offsets use original-source UTF-8 bytes, including bytes within a multibyte character; end-of-file and out-of-range positions return `None`. Only recorded reference spans match: a component member's root is a reference in both opening and closing tags, while its property names are not.
+
+`FileFacts::references_to(id)` returns borrowed references whose `Resolution::Resolved` binding has that declaration ID. Value and type references are included. Unresolved identifiers, builtins, and runtime-dependent candidates do not count as definite uses. Missing names or unknown declaration IDs yield empty vectors. Multiple results are ordered by `(span.start, span.end, id)` without reordering stored records or changing IDs.
+
+The methods cover frontmatter, template, and eligible browser-script records already in `FileFacts`. CSS candidates and cross-file lookup are outside this search API. Queries perform no analysis or I/O and introduce no new error type. IDs must come from the same result; a numeric ID reused by another result cannot be distinguished. Tests are in [queries.rs](../tests/queries.rs), with cached-result and update coverage in [incremental.rs](../tests/incremental.rs).
 
 ## Incremental API
 
 Enable the `incremental` Cargo feature to use `AnalysisDatabase::new()` or `Default`. `set_source(path, text)` registers or replaces complete source text without analyzing it. `analyze_file(path)` returns `None` for an unregistered key and otherwise returns an `Arc<Result<FileFacts, AnalysisError>>`. It reuses successful facts and syntax errors until the file changes; the next request analyzes its latest full text. Identical text updates are skipped before changing the input revision. Updating one file does not rerun another file's analysis.
 
-Paths follow `PathBuf` equality/hashing without canonicalization or filesystem I/O. Returned results remain usable across updates and database destruction; IDs belong to each result, not to a stable cross-revision namespace. Inputs and cached results live until the database is dropped, and caller-held `Arc` values retain their results independently. The initial API has no file removal, reset, persistent cache, or parallel snapshot API. See [ADR 0002](adr/0002-incremental-analysis.md) for the decision and alternatives.
+Paths follow `PathBuf` equality/hashing without canonicalization or filesystem I/O. Returned results remain usable across updates and database destruction; IDs belong to each result, not to a stable cross-revision namespace. `remove_file(path)` unregisters a path and returns whether it existed. Internal Salsa inputs remain allocated until the database is dropped, and caller-held `Arc` values retain earlier results independently. There is no reset, persistent cache, or parallel query API. See [ADR 0002](adr/0002-incremental-analysis.md) for the original file-level decision and [ADR 0003](adr/0003-project-import-search.md) for removal and project snapshots.
+
+## Project import search
+
+`AnalysisDatabase::analyze_project()` returns a cached `Arc<ProjectSnapshot>` over all registered Astro buffers. Each `ProjectFile` retains an `Arc<str>` source and its `Arc<Result<FileFacts, AnalysisError>>`; file-local IDs keep their original meaning. `files()` and `file(path)` expose these results, including errors. Failed importers contribute no outgoing imports or identifier uses. Target existence and target syntax validity are separate: an import can resolve to a registered file whose analysis failed.
+
+| Snapshot method | Contract |
+| --- | --- |
+| `imports_from(path)` | Static import declarations from a successful file, including side-effect and unused imports, with their execution domain and `ModuleResolution`. |
+| `imports_to(path)` | Direct import declarations whose module resolved to the exact registered target key. |
+| `references_to_file(path)` | Value/type references definitely bound to an import of that target file, including aliases and namespace roots. |
+| `reference_at(path, offset)` | A canonical local reference and its originating import, if definitely bound to one. Module resolution uncertainty does not replace lexical `Resolution`. |
+| `revision()` | Database-local source-set and resolver-setting revision counters. They are not identities across databases. |
+
+Results borrow canonical file records and are ordered by path, then original-source span. Shadowed locals, unresolved identifiers, builtins, and runtime-dependent candidate bindings do not become imported-file uses. An unknown path produces no matches. Resolving a named import's module does not validate that export or identify its declaration. Re-exports, dynamic imports, script `src`, CSS dependencies, and transitive traversal are outside this stage.
+
+The default `RelativeResolver` matches explicit `./` and `../` specifiers using lexical dot/parent normalization and collapsing repeated separators over registered virtual paths. It returns the original registered key; multiple keys normalizing to the same target produce `Ambiguous`. Missing paths are `Unresolved`. Bare specifiers, absolute paths, URLs, backslashes, directory forms ending in `/`, `/.`, or `/..`, and query/hash suffixes are `Unsupported`; extensions and directory indexes are not inferred. There is no filesystem, symlink, or case-folding lookup. `ModuleResolver` implementations can use the original import, execution domain, and immutable `ProjectSources`, including source contents, to supply other policies. A resolver's `Resolved` result for an absent exact key is converted to `Unresolved`. Custom `Ambiguous` candidates are retained as reported for inspection; they are not validated or indexed as resolved imports.
+
+Any source addition, edit, removal, or call to `set_module_resolver` invalidates the complete project index on demand, including negative lookups. Identical source updates and removal of an unknown key preserve it. File parsing remains memoized separately; configuration changes do not reparse unchanged files. Resolver implementations must use immutable settings and the supplied snapshot, and callers must replace them whenever their settings or external inputs change. Earlier project results retain their sources, facts, and resolution decisions across updates and database destruction.
 
 ## Fixed-release differences
 

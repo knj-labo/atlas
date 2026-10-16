@@ -3,6 +3,7 @@ use std::{error::Error, fmt, ops::Range};
 macro_rules! id_type {
     ($($name:ident),+ $(,)?) => {$ (
         /// An index valid only within the containing analysis result.
+        /// Obtain IDs again after a source update; they are not stable across results.
         #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
         #[cfg_attr(any(feature = "serde", test), derive(serde::Serialize))]
         pub struct $name(pub usize);
@@ -19,6 +20,11 @@ id_type!(
 );
 
 /// Owned facts; every span is a UTF-8 byte interval in the original source.
+///
+/// Use [`Self::declarations_named`], [`Self::reference_at`], and
+/// [`Self::references_to`] for read-only, file-local searches borrowing these
+/// records. Multiple matches are returned in source order without changing IDs
+/// or the order of the stored records.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(any(feature = "serde", test), derive(serde::Serialize))]
 pub struct FileFacts {
