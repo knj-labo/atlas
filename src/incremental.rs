@@ -73,12 +73,12 @@ impl AnalysisDatabase {
         if let Some(&file) = self.files.get(&path) {
             if file.text(&self.database).as_ref() != source.as_str() {
                 file.set_text(&mut self.database).to(source.into());
-                self.sources_changed();
+                self.invalidate_project_cache();
             }
         } else {
             let file = SourceFile::new(&self.database, Arc::<str>::from(source));
             self.files.insert(path, file);
-            self.sources_changed();
+            self.invalidate_project_cache();
         }
     }
 
@@ -89,7 +89,7 @@ impl AnalysisDatabase {
         if self.files.remove(path.as_ref()).is_none() {
             return false;
         }
-        self.sources_changed();
+        self.invalidate_project_cache();
         true
     }
 
@@ -147,7 +147,7 @@ impl AnalysisDatabase {
         }))
     }
 
-    fn sources_changed(&mut self) {
+    fn invalidate_project_cache(&mut self) {
         self.revision.sources = self
             .revision
             .sources
