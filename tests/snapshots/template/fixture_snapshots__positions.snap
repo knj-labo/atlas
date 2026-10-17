@@ -16,6 +16,7 @@ expression: "render::snapshot(&result)"
     {"attributes":[],"closing_span":[118,122],"directives":[],"id":"e0","kind":"Html","name":"p","name_span":[102,103],"opening_span":[101,104],"parent":null,"reference":null,"slot":null,"span":[101,122],"text":[{"raw":"前置き 🦀","span":[104,118]}]},
     {"attributes":[{"literal":{"String":"和文 😀"},"name":"title","name_span":[133,138],"span":[133,152],"spread":false,"value":{"kind":"String","raw":"\"和文 😀\"","span":[139,152]}},{"literal":{"String":"(幅: 1px)"},"name":"client:media","name_span":[153,165],"span":[153,178],"spread":false,"value":{"kind":"String","raw":"\"(幅: 1px)\"","span":[166,178]}}],"closing_span":[188,198],"directives":[{"name":"client:media","name_span":[153,165],"span":[153,178],"status":"RequiresProjectContext","value":{"kind":"String","raw":"\"(幅: 1px)\"","span":[166,178]}}],"id":"e1","kind":"Component","name":"Counter","name_span":[125,132],"opening_span":[124,179],"parent":null,"reference":"r0","slot":null,"span":[124,198],"text":[]}
   ],
+  "exports": [],
   "imports": [
     {"bindings":[{"name":"Counter","span":[31,38],"target":{"source":"./Counter.astro","specifier":"Default","type_only":false}}],"source":"./Counter.astro","source_span":[44,61],"span":[24,62]}
   ],

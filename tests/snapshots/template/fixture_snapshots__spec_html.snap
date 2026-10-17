@@ -16,6 +16,7 @@ expression: "render::snapshot(&result)"
     {"attributes":[],"closing_span":null,"directives":[],"id":"e5","kind":"Html","name":"br","name_span":[88,90],"opening_span":[87,91],"parent":"e3","reference":null,"slot":null,"span":[87,91],"text":[]},
     {"attributes":[{"literal":{"String":"/about"},"name":"href","name_span":[94,98],"span":[94,105],"spread":false,"value":{"kind":"String","raw":"/about","span":[99,105]}}],"closing_span":[110,114],"directives":[],"id":"e6","kind":"Html","name":"a","name_span":[92,93],"opening_span":[91,106],"parent":"e3","reference":null,"slot":null,"span":[91,114],"text":[{"raw":"link","span":[106,110]}]}
   ],
+  "exports": [],
   "imports": [],
   "references": [],
   "scopes": [

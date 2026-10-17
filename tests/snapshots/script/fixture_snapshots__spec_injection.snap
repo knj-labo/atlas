@@ -14,6 +14,7 @@ expression: "render::snapshot(&result)"
   "elements": [
     {"attributes":[{"literal":null,"name":"define:vars","name_span":[37,48],"span":[37,83],"spread":false,"value":{"kind":"Expression","raw":"{{message:title,\"bg-color\":title}}","span":[49,83]}}],"closing_span":[100,109],"directives":[{"name":"define:vars","name_span":[37,48],"span":[37,83],"status":"Dynamic","value":{"kind":"Expression","raw":"{{message:title,\"bg-color\":title}}","span":[49,83]}}],"id":"e0","kind":"Script","name":"script","name_span":[30,36],"opening_span":[29,84],"parent":null,"reference":null,"slot":null,"span":[29,109],"text":[]}
   ],
+  "exports": [],
   "imports": [],
   "references": [
     {"id":"r0","kind":"Value","name":"title","resolution":{"Resolved":"d0"},"scope":"s0","span":[59,64]},

@@ -10,6 +10,7 @@ expression: "render::snapshot(&result)"
   "elements": [
     {"attributes":[],"closing_span":[93,101],"directives":[],"id":"e0","kind":"Style","name":"style","name_span":[1,6],"opening_span":[0,7],"parent":null,"reference":null,"slot":null,"span":[0,101],"text":[{"raw":"@layer base{.a,:global(.b){--tone:red;@media (width>1px){&:hover{color:var(--tone)}}}}","span":[7,93]}]}
   ],
+  "exports": [],
   "imports": [],
   "references": [],
   "scopes": [

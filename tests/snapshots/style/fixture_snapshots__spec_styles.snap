@@ -13,6 +13,7 @@ expression: "render::snapshot(&result)"
     {"attributes":[{"literal":{"Boolean":true},"name":"is:inline","name_span":[74,83],"span":[74,83],"spread":false,"value":null}],"closing_span":[97,105],"directives":[{"name":"is:inline","name_span":[74,83],"span":[74,83],"status":"Valid","value":null}],"id":"e2","kind":"Style","name":"style","name_span":[68,73],"opening_span":[67,84],"parent":null,"reference":null,"slot":null,"span":[67,105],"text":[{"raw":".c{color:red}","span":[84,97]}]},
     {"attributes":[{"literal":{"String":"scss"},"name":"lang","name_span":[112,116],"span":[112,123],"spread":false,"value":{"kind":"String","raw":"\"scss\"","span":[117,123]}}],"closing_span":[131,139],"directives":[],"id":"e3","kind":"Style","name":"style","name_span":[106,111],"opening_span":[105,124],"parent":null,"reference":null,"slot":null,"span":[105,139],"text":[{"raw":"$x:red;","span":[124,131]}]}
   ],
+  "exports": [],
   "imports": [],
   "references": [],
   "scopes": [

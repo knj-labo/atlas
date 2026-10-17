@@ -27,6 +27,7 @@ expression: "render::snapshot(&result)"
     {"attributes":[],"closing_span":null,"directives":[],"id":"e3","kind":"Component","name":"UI.Forms.Counter","name_span":[260,276],"opening_span":[259,279],"parent":null,"reference":"r3","slot":null,"span":[259,279],"text":[]},
     {"attributes":[],"closing_span":null,"directives":[],"id":"e4","kind":"Component","name":"TypeOnly","name_span":[281,289],"opening_span":[280,292],"parent":null,"reference":"r4","slot":null,"span":[280,292],"text":[]}
   ],
+  "exports": [],
   "imports": [
     {"bindings":[],"source":"./setup","source_span":[11,20],"span":[4,21]},
     {"bindings":[{"name":"Default","span":[29,36],"target":{"source":"./default","specifier":"Default","type_only":false}}],"source":"./default","source_span":[42,53],"span":[22,54]},

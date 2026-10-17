@@ -13,6 +13,7 @@ expression: "render::snapshot(&result)"
   "elements": [
     {"attributes":[{"literal":null,"name":"define:vars","name_span":[39,50],"span":[39,62],"spread":false,"value":{"kind":"Expression","raw":"{{ title }}","span":[51,62]}}],"closing_span":[86,95],"directives":[{"name":"define:vars","name_span":[39,50],"span":[39,62],"status":"Dynamic","value":{"kind":"Expression","raw":"{{ title }}","span":[51,62]}}],"id":"e0","kind":"Script","name":"script","name_span":[32,38],"opening_span":[31,63],"parent":null,"reference":null,"slot":null,"span":[31,95],"text":[]}
   ],
+  "exports": [],
   "imports": [],
   "references": [
     {"id":"r0","kind":"Value","name":"title","resolution":{"Resolved":"d0"},"scope":"s0","span":[54,59]},

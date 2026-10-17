@@ -495,3 +495,34 @@ fn borrowed_resolvers_run_per_analysis_and_are_not_retained_by_queries() {
     assert_eq!(first.references_to_file("Button.astro").len(), 1);
     assert_eq!(second.references_to_file("Button.astro").len(), 1);
 }
+
+#[test]
+fn component_uses_carry_element_attributes_and_skip_shadowed_names() {
+    let page = "---\nimport Card from './Card.astro';\nimport * as ui from './Card.astro';\n---\n<Card title=\"a\" client:load slot=\"x\" />\n<ui.Card />\n{[1].map((Card) => <Card />)}";
+    let snapshot = analyze_project([("/v/Page.astro", page), ("/v/Card.astro", "<div />")]);
+    let uses = snapshot.component_uses_of("/v/Card.astro");
+    let names: Vec<_> = uses.iter().map(|u| u.component.name.as_str()).collect();
+    assert_eq!(names, ["Card", "ui.Card"]);
+    assert_eq!(uses[0].path, Path::new("/v/Page.astro"));
+    assert_eq!(uses[0].element.attributes[0].name.as_deref(), Some("title"));
+    assert_eq!(uses[0].component.directives.len(), 1);
+    assert!(uses[0].element.slot.is_some());
+}
+
+#[test]
+fn unused_exports_ignore_astro_roles_and_respect_named_and_namespace_imports() {
+    let lib = "---\nexport interface Props {}\nexport const prerender = true;\nexport const used = 1;\nexport const unused = 2;\n---";
+    let ns = "---\nexport const viaNamespace = 1;\n---";
+    let page = "---\nimport { used } from './Lib.astro';\nimport * as all from './Ns.astro';\n---\n{used}{all}";
+    let snapshot = analyze_project([
+        ("/v/Lib.astro", lib),
+        ("/v/Ns.astro", ns),
+        ("/v/Page.astro", page),
+    ]);
+    let unused: Vec<_> = snapshot
+        .unused_exports()
+        .iter()
+        .map(|e| (e.path.to_str().unwrap(), e.export.name.as_str()))
+        .collect();
+    assert_eq!(unused, [("/v/Lib.astro", "unused")]);
+}

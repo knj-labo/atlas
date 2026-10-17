@@ -14,6 +14,7 @@ expression: "render::snapshot(&result)"
   "elements": [
     {"attributes":[],"closing_span":[56,69],"directives":[],"id":"e0","kind":"Component","name":"UI.Counter","name_span":[45,55],"opening_span":[44,56],"parent":null,"reference":"r0","slot":null,"span":[44,69],"text":[]}
   ],
+  "exports": [],
   "imports": [
     {"bindings":[{"name":"UI","span":[16,18],"target":{"source":"./components","specifier":"Namespace","type_only":false}}],"source":"./components","source_span":[24,38],"span":[4,39]}
   ],

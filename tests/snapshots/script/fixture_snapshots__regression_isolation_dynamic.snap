@@ -13,6 +13,7 @@ expression: "render::snapshot(&result)"
     {"attributes":[{"literal":null,"name":"define:vars","name_span":[8,19],"span":[8,26],"spread":false,"value":{"kind":"Expression","raw":"{vars}","span":[20,26]}}],"closing_span":[47,56],"directives":[{"name":"define:vars","name_span":[8,19],"span":[8,26],"status":"Dynamic","value":{"kind":"Expression","raw":"{vars}","span":[20,26]}}],"id":"e0","kind":"Script","name":"script","name_span":[1,7],"opening_span":[0,27],"parent":null,"reference":null,"slot":null,"span":[0,56],"text":[]},
     {"attributes":[{"literal":{"Boolean":true},"name":"is:inline","name_span":[64,73],"span":[64,73],"spread":false,"value":null}],"closing_span":[81,90],"directives":[{"name":"is:inline","name_span":[64,73],"span":[64,73],"status":"Valid","value":null}],"id":"e1","kind":"Script","name":"script","name_span":[57,63],"opening_span":[56,74],"parent":null,"reference":null,"slot":null,"span":[56,90],"text":[]}
   ],
+  "exports": [],
   "imports": [],
   "references": [
     {"id":"r0","kind":"Value","name":"vars","resolution":"Unresolved","scope":"s0","span":[21,25]},

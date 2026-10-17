@@ -16,6 +16,7 @@ expression: "render::snapshot(&result)"
     {"attributes":[],"closing_span":[61,70],"directives":[],"id":"e1","kind":"Script","name":"script","name_span":[42,48],"opening_span":[41,49],"parent":null,"reference":null,"slot":null,"span":[41,70],"text":[]},
     {"attributes":[],"closing_span":[112,121],"directives":[],"id":"e2","kind":"Script","name":"script","name_span":[93,99],"opening_span":[92,100],"parent":null,"reference":null,"slot":null,"span":[92,121],"text":[]}
   ],
+  "exports": [],
   "imports": [],
   "references": [
     {"id":"r0","kind":"Value","name":"a","resolution":{"Resolved":"d0"},"scope":"s2","span":[20,21]},

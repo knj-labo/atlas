@@ -27,6 +27,7 @@ expression: "render::snapshot(&result)"
     {"attributes":[],"closing_span":[431,440],"directives":[],"id":"e3","kind":"Script","name":"script","name_span":[202,208],"opening_span":[201,209],"parent":"e1","reference":null,"slot":null,"span":[201,440],"text":[]},
     {"attributes":[],"closing_span":[546,555],"directives":[],"id":"e4","kind":"Script","name":"script","name_span":[455,461],"opening_span":[454,462],"parent":null,"reference":null,"slot":null,"span":[454,555],"text":[]}
   ],
+  "exports": [],
   "imports": [
     {"bindings":[{"name":"Counter","span":[11,18],"target":{"source":"./Counter.astro","specifier":"Default","type_only":false}}],"source":"./Counter.astro","source_span":[24,41],"span":[4,42]}
   ],

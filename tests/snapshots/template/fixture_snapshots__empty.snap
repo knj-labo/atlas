@@ -8,6 +8,7 @@ expression: "render::snapshot(&result)"
   "declarations": [],
   "diagnostics": [],
   "elements": [],
+  "exports": [],
   "imports": [],
   "references": [],
   "scopes": [
