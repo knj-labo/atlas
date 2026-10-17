@@ -14,6 +14,7 @@ expression: "render::snapshot(&result)"
   "elements": [
     {"attributes":[{"literal":{"Object":[["yield",{"Number":"1"}],["await",{"Number":"2"}],["implements",{"Number":"3"}]]},"name":"define:vars","name_span":[8,19],"span":[8,52],"spread":false,"value":{"kind":"Expression","raw":"{{yield:1,await:2,implements:3}}","span":[20,52]}}],"closing_span":[70,79],"directives":[{"name":"define:vars","name_span":[8,19],"span":[8,52],"status":"Valid","value":{"kind":"Expression","raw":"{{yield:1,await:2,implements:3}}","span":[20,52]}}],"id":"e0","kind":"Script","name":"script","name_span":[1,7],"opening_span":[0,53],"parent":null,"reference":null,"slot":null,"span":[0,79],"text":[]}
   ],
+  "exports": [],
   "imports": [],
   "references": [
     {"id":"r0","kind":"Value","name":"yield","resolution":{"Resolved":"d0"},"scope":"s1","span":[53,58]},

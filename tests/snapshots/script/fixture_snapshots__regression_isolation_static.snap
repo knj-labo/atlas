@@ -14,6 +14,7 @@ expression: "render::snapshot(&result)"
     {"attributes":[{"literal":{"Object":[["x",{"Number":"1"}]]},"name":"define:vars","name_span":[8,19],"span":[8,27],"spread":false,"value":{"kind":"Expression","raw":"{{x:1}}","span":[20,27]}}],"closing_span":[48,57],"directives":[{"name":"define:vars","name_span":[8,19],"span":[8,27],"status":"Valid","value":{"kind":"Expression","raw":"{{x:1}}","span":[20,27]}}],"id":"e0","kind":"Script","name":"script","name_span":[1,7],"opening_span":[0,28],"parent":null,"reference":null,"slot":null,"span":[0,57],"text":[]},
     {"attributes":[{"literal":{"Boolean":true},"name":"is:inline","name_span":[65,74],"span":[65,74],"spread":false,"value":null}],"closing_span":[82,91],"directives":[{"name":"is:inline","name_span":[65,74],"span":[65,74],"status":"Valid","value":null}],"id":"e1","kind":"Script","name":"script","name_span":[58,64],"opening_span":[57,75],"parent":null,"reference":null,"slot":null,"span":[57,91],"text":[]}
   ],
+  "exports": [],
   "imports": [],
   "references": [
     {"id":"r0","kind":"Value","name":"hidden","resolution":{"Resolved":"d1"},"scope":"s1","span":[41,47]},

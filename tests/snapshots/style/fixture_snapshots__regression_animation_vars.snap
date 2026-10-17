@@ -10,6 +10,7 @@ expression: "render::snapshot(&result)"
   "elements": [
     {"attributes":[],"closing_span":[289,297],"directives":[],"id":"e0","kind":"Style","name":"style","name_span":[1,6],"opening_span":[0,7],"parent":null,"reference":null,"slot":null,"span":[0,297],"text":[{"raw":"@keyframes spin{}@keyframes bounce{}@keyframes linear{}@keyframes \"none\"{}.a{animation:spin var(--duration) linear,var(--ease) bounce 2s;animation:linear var(--duration) linear;animation-name:spin,var(--name),\"none\";animation:spin var(--ease) !important;--duration:1s;--ease:linear}","span":[7,289]}]}
   ],
+  "exports": [],
   "imports": [],
   "references": [],
   "scopes": [

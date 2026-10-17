@@ -10,6 +10,7 @@ expression: "render::snapshot(&result)"
   "elements": [
     {"attributes":[{"literal":{"String":"./app.ts"},"name":"src","name_span":[8,11],"span":[8,22],"spread":false,"value":{"kind":"String","raw":"\"./app.ts\"","span":[12,22]}}],"closing_span":[23,32],"directives":[],"id":"e0","kind":"Script","name":"script","name_span":[1,7],"opening_span":[0,23],"parent":null,"reference":null,"slot":null,"span":[0,32],"text":[]}
   ],
+  "exports": [],
   "imports": [],
   "references": [],
   "scopes": [

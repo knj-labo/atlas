@@ -18,6 +18,7 @@ expression: "render::snapshot(&result)"
     {"attributes":[{"literal":{"Boolean":true},"name":"client:visible","name_span":[66,80],"span":[66,80],"spread":false,"value":null}],"closing_span":null,"directives":[{"name":"client:visible","name_span":[66,80],"span":[66,80],"status":"RequiresProjectContext","value":null}],"id":"e0","kind":"Component","name":"Counter","name_span":[58,65],"opening_span":[57,83],"parent":null,"reference":"r0","slot":null,"span":[57,83],"text":[]},
     {"attributes":[],"closing_span":null,"directives":[],"id":"e1","kind":"Dynamic","name":"Counter","name_span":[104,111],"opening_span":[103,114],"parent":null,"reference":"r2","slot":null,"span":[103,114],"text":[]}
   ],
+  "exports": [],
   "imports": [
     {"bindings":[{"name":"Counter","span":[11,18],"target":{"source":"./Counter","specifier":"Default","type_only":false}}],"source":"./Counter","source_span":[24,35],"span":[4,36]}
   ],

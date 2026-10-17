@@ -22,6 +22,7 @@ expression: "render::snapshot(&result)"
     {"attributes":[],"closing_span":null,"directives":[],"id":"e1","kind":"Dynamic","name":"Counter","name_span":[139,146],"opening_span":[138,149],"parent":null,"reference":"r3","slot":null,"span":[138,149],"text":[]},
     {"attributes":[],"closing_span":[188,197],"directives":[],"id":"e2","kind":"Script","name":"script","name_span":[156,162],"opening_span":[155,163],"parent":null,"reference":null,"slot":null,"span":[155,197],"text":[]}
   ],
+  "exports": [],
   "imports": [
     {"bindings":[{"name":"Counter","span":[11,18],"target":{"source":"./Counter.tsx","specifier":"Default","type_only":false}}],"source":"./Counter.tsx","source_span":[24,39],"span":[4,40]}
   ],

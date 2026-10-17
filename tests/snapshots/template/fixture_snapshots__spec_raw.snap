@@ -10,6 +10,7 @@ expression: "render::snapshot(&result)"
   "elements": [
     {"attributes":[{"literal":{"Boolean":true},"name":"is:raw","name_span":[34,40],"span":[34,40],"spread":false,"value":null}],"closing_span":[58,64],"directives":[{"name":"is:raw","name_span":[34,40],"span":[34,40],"status":"Valid","value":null}],"id":"e0","kind":"Html","name":"div","name_span":[30,33],"opening_span":[29,41],"parent":null,"reference":null,"slot":null,"span":[29,64],"text":[{"raw":"{notCode}<Fake />","span":[41,58]}]}
   ],
+  "exports": [],
   "imports": [],
   "references": [],
   "scopes": [

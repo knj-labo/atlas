@@ -21,6 +21,7 @@ expression: "render::snapshot(&result)"
     {"attributes":[],"closing_span":[93,97],"directives":[],"id":"e3","kind":"Component","name":"C","name_span":[73,74],"opening_span":[72,75],"parent":"e0","reference":"r2","slot":null,"span":[72,97],"text":[]},
     {"attributes":[{"literal":null,"name":"slot","name_span":[80,84],"span":[80,91],"spread":false,"value":{"kind":"Expression","raw":"{name}","span":[85,91]}}],"closing_span":null,"directives":[],"id":"e4","kind":"Html","name":"div","name_span":[76,79],"opening_span":[75,93],"parent":"e3","reference":null,"slot":{"dynamic":true,"name":null,"span":[80,91]},"span":[75,93],"text":[]}
   ],
+  "exports": [],
   "imports": [],
   "references": [
     {"id":"r0","kind":"Value","name":"Fragment","resolution":{"Builtin":"Fragment"},"scope":"s0","span":[3,11]},

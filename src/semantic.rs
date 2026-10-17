@@ -149,6 +149,61 @@ pub(crate) fn project(
         facts.declarations.push(binding.clone());
         symbols.insert(id, binding);
     }
+    if domain == ScopeDomain::Server {
+        for node in semantic.nodes().iter() {
+            let AstKind::ExportNamedDeclaration(export) = node.kind() else {
+                continue;
+            };
+            let type_only = export.export_kind == ast::ImportOrExportKind::Type;
+            let source = export.source.as_ref().map(|s| s.value.to_string());
+            let mut push = |name: &str, span, symbol: Option<SymbolId>, type_only| {
+                facts.exports.push(Export {
+                    name: name.into(),
+                    span: range(span),
+                    local: symbol.map(|id| symbols[&id].id),
+                    source: source.clone(),
+                    type_only,
+                    role: match name {
+                        "getStaticPaths" | "prerender" | "partial" => ExportRole::Astro,
+                        "Props" => ExportRole::Props,
+                        _ => ExportRole::Other,
+                    },
+                });
+            };
+            match &export.declaration {
+                Some(ast::Declaration::VariableDeclaration(variables)) => {
+                    for declarator in &variables.declarations {
+                        for id in declarator.id.get_binding_identifiers() {
+                            push(&id.name, id.span, id.symbol_id.get(), type_only);
+                        }
+                    }
+                }
+                Some(declaration) => {
+                    if let Some(id) = declaration.id() {
+                        let type_only = type_only || declaration.is_typescript_syntax();
+                        push(&id.name, id.span, id.symbol_id.get(), type_only);
+                    }
+                }
+                None => {
+                    for specifier in &export.specifiers {
+                        let symbol = match &specifier.local {
+                            ast::ModuleExportName::IdentifierReference(r) if source.is_none() => r
+                                .reference_id
+                                .get()
+                                .and_then(|r| semantic.scoping().get_reference(r).symbol_id()),
+                            _ => None,
+                        };
+                        push(
+                            &specifier.exported.name(),
+                            specifier.exported.span(),
+                            symbol,
+                            type_only || specifier.export_kind == ast::ImportOrExportKind::Type,
+                        );
+                    }
+                }
+            }
+        }
+    }
     let mut references = HashMap::new();
     for node in semantic.nodes().iter() {
         if let AstKind::IdentifierReference(identifier) = node.kind() {

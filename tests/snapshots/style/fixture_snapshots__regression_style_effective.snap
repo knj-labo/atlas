@@ -10,6 +10,7 @@ expression: "render::snapshot(&result)"
   "elements": [
     {"attributes":[{"literal":{"Object":[["x",{"Number":"1"}]]},"name":"define:vars","name_span":[7,18],"span":[7,26],"spread":false,"value":{"kind":"Expression","raw":"{{x:1}}","span":[19,26]}}],"closing_span":[45,53],"directives":[{"name":"define:vars","name_span":[7,18],"span":[7,26],"status":"Valid","value":{"kind":"Expression","raw":"{{x:1}}","span":[19,26]}}],"id":"e0","kind":"Style","name":"style","name_span":[1,6],"opening_span":[0,27],"parent":null,"reference":null,"slot":null,"span":[0,53],"text":[{"raw":".a{color:var(--x)}","span":[27,45]}]}
   ],
+  "exports": [],
   "imports": [],
   "references": [],
   "scopes": [

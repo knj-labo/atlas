@@ -12,6 +12,7 @@ expression: "render::snapshot(&result)"
     {"attributes":[{"literal":{"String":"a.js"},"name":"src","name_span":[13,16],"span":[13,23],"spread":false,"value":{"kind":"String","raw":"\"a.js\"","span":[17,23]}}],"closing_span":[24,33],"directives":[],"id":"e1","kind":"Script","name":"script","name_span":[6,12],"opening_span":[5,24],"parent":"e0","reference":null,"slot":null,"span":[5,33],"text":[]},
     {"attributes":[{"literal":{"Object":[["x",{"Number":"1"}]]},"name":"define:vars","name_span":[40,51],"span":[40,59],"spread":false,"value":{"kind":"Expression","raw":"{{x:1}}","span":[52,59]}}],"closing_span":[78,86],"directives":[{"name":"define:vars","name_span":[40,51],"span":[40,59],"status":"Valid","value":{"kind":"Expression","raw":"{{x:1}}","span":[52,59]}}],"id":"e2","kind":"Style","name":"style","name_span":[34,39],"opening_span":[33,60],"parent":"e0","reference":null,"slot":null,"span":[33,86],"text":[{"raw":".a{color:var(--x)}","span":[60,78]}]}
   ],
+  "exports": [],
   "imports": [],
   "references": [],
   "scopes": [

@@ -10,6 +10,7 @@ expression: "render::snapshot(&result)"
   "elements": [
     {"attributes":[],"closing_span":[530,538],"directives":[],"id":"e0","kind":"Style","name":"style","name_span":[1,6],"opening_span":[0,7],"parent":null,"reference":null,"slot":null,"span":[0,538],"text":[{"raw":"@keyframes linear{}@keyframes reverse{}@keyframes both{}@keyframes paused{}@keyframes infinite{}@keyframes ease{}@keyframes alternate{}@keyframes forwards{}@keyframes running{}@keyframes --timeline{}.a{animation:1s linear linear,1s reverse reverse,1s both both,1s paused paused,1s infinite infinite,1s ease ease,1s alternate alternate,1s forwards forwards,1s running running;animation:1s steps(2) 2s 3 alternate both paused linear;animation:\"linear\" linear 1s;animation:1s --timeline --timeline;animation-name:NONE, \"none\"}","span":[7,530]}]}
   ],
+  "exports": [],
   "imports": [],
   "references": [],
   "scopes": [
