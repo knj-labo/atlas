@@ -151,12 +151,24 @@ pub(crate) fn project(
     }
     if domain == ScopeDomain::Server {
         for node in semantic.nodes().iter() {
-            let AstKind::ExportNamedDeclaration(export) = node.kind() else {
+            // Exports inside namespaces and ambient modules are not module exports.
+            if !matches!(semantic.nodes().parent_kind(node.id()), AstKind::Program(_)) {
                 continue;
+            }
+            let (export_kind, source) = match node.kind() {
+                AstKind::ExportNamedDeclaration(export) => {
+                    (export.export_kind, export.source.as_ref())
+                }
+                AstKind::ExportAllDeclaration(export) => (export.export_kind, Some(&export.source)),
+                _ => continue,
             };
-            let type_only = export.export_kind == ast::ImportOrExportKind::Type;
-            let source = export.source.as_ref().map(|s| s.value.to_string());
-            let mut push = |name: &str, span, symbol: Option<SymbolId>, type_only| {
+            let source = source.map(|s| s.value.to_string());
+            let type_export = export_kind == ast::ImportOrExportKind::Type;
+            let mut push = |name: &str, span, symbol: Option<SymbolId>, type_export: bool| {
+                // Local declarations use Oxc's symbol meaning; re-exports rely on
+                // the explicit `type` modifier because their target is not opened.
+                let type_only = type_export
+                    || symbol.is_some_and(|id| !semantic.scoping().symbol_flags(id).is_value());
                 facts.exports.push(Export {
                     name: name.into(),
                     span: range(span),
@@ -164,43 +176,56 @@ pub(crate) fn project(
                     source: source.clone(),
                     type_only,
                     role: match name {
-                        "getStaticPaths" | "prerender" | "partial" => ExportRole::Astro,
-                        "Props" => ExportRole::Props,
+                        "getStaticPaths" | "prerender" | "partial" if !type_only => {
+                            ExportRole::Astro
+                        }
+                        "Props" if type_only => ExportRole::Props,
                         _ => ExportRole::Other,
                     },
                 });
             };
-            match &export.declaration {
-                Some(ast::Declaration::VariableDeclaration(variables)) => {
-                    for declarator in &variables.declarations {
-                        for id in declarator.id.get_binding_identifiers() {
-                            push(&id.name, id.span, id.symbol_id.get(), type_only);
+            match node.kind() {
+                AstKind::ExportAllDeclaration(export) => {
+                    if let Some(exported) = &export.exported {
+                        push(&exported.name(), exported.span(), None, type_export);
+                    }
+                }
+                AstKind::ExportNamedDeclaration(export) => match &export.declaration {
+                    Some(ast::Declaration::VariableDeclaration(variables)) => {
+                        for declarator in &variables.declarations {
+                            for id in declarator.id.get_binding_identifiers() {
+                                push(&id.name, id.span, id.symbol_id.get(), type_export);
+                            }
                         }
                     }
-                }
-                Some(declaration) => {
-                    if let Some(id) = declaration.id() {
-                        let type_only = type_only || declaration.is_typescript_syntax();
-                        push(&id.name, id.span, id.symbol_id.get(), type_only);
+                    Some(declaration) => {
+                        if let Some(id) = declaration.id() {
+                            push(&id.name, id.span, id.symbol_id.get(), type_export);
+                        }
                     }
-                }
-                None => {
-                    for specifier in &export.specifiers {
-                        let symbol = match &specifier.local {
-                            ast::ModuleExportName::IdentifierReference(r) if source.is_none() => r
-                                .reference_id
-                                .get()
-                                .and_then(|r| semantic.scoping().get_reference(r).symbol_id()),
-                            _ => None,
-                        };
-                        push(
-                            &specifier.exported.name(),
-                            specifier.exported.span(),
-                            symbol,
-                            type_only || specifier.export_kind == ast::ImportOrExportKind::Type,
-                        );
+                    None => {
+                        for specifier in &export.specifiers {
+                            let symbol = match &specifier.local {
+                                ast::ModuleExportName::IdentifierReference(r)
+                                    if source.is_none() =>
+                                {
+                                    r.reference_id.get().and_then(|r| {
+                                        semantic.scoping().get_reference(r).symbol_id()
+                                    })
+                                }
+                                _ => None,
+                            };
+                            push(
+                                &specifier.exported.name(),
+                                specifier.exported.span(),
+                                symbol,
+                                type_export
+                                    || specifier.export_kind == ast::ImportOrExportKind::Type,
+                            );
+                        }
                     }
-                }
+                },
+                _ => unreachable!(),
             }
         }
     }
