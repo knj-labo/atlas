@@ -34,3 +34,8 @@ serde_json = "1.0"
 name = "spec-dump"
 path = "tests/bin/spec_dump.rs"
 required-features = ["serde"]
+
+[[example]]
+name = "atlas-report"
+path = "examples/atlas_report.rs"
+required-features = ["serde"]

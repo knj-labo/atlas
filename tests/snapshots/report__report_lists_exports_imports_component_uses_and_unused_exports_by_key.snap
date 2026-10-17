@@ -1,0 +1,65 @@
+---
+source: tests/report.rs
+expression: "serde_json::to_string_pretty(&report).unwrap()"
+---
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "path": "/v/Card.astro",
+      "analyzed": true,
+      "diagnostics": [],
+      "exports": [
+        {
+          "key": "/v/Card.astro#21-26",
+          "name": "Props",
+          "role": "Props",
+          "type_only": true,
+          "source": null
+        },
+        {
+          "key": "/v/Card.astro#58-65",
+          "name": "variant",
+          "role": "Other",
+          "type_only": false,
+          "source": null
+        }
+      ],
+      "imports": [],
+      "component_uses": [
+        {
+          "key": "/v/Page.astro#41-97",
+          "name": "Card",
+          "props": [
+            "title",
+            "..."
+          ],
+          "directives": [
+            "client:visible"
+          ],
+          "slot": "aside"
+        }
+      ]
+    },
+    {
+      "path": "/v/Page.astro",
+      "analyzed": true,
+      "diagnostics": [],
+      "exports": [],
+      "imports": [
+        {
+          "key": "/v/Page.astro#4-36",
+          "source": "./Card.astro",
+          "domain": "Server",
+          "resolution": {
+            "Resolved": "/v/Card.astro"
+          }
+        }
+      ],
+      "component_uses": []
+    }
+  ],
+  "unused_exports": [
+    "/v/Card.astro#58-65"
+  ]
+}
