@@ -1,7 +1,7 @@
 use crate::{
-    AnalysisError, DeclarationId, DeclarationKind, FileFacts, Import, ModuleRequest,
-    ModuleResolution, ModuleResolver, ProjectSources, Reference, ReferenceId, RelativeResolver,
-    Resolution, ScopeDomain, analyze,
+    AnalysisError, ComponentUse, DeclarationId, DeclarationKind, Element, Export, ExportRole,
+    FileFacts, Import, ImportSpecifier, ModuleRequest, ModuleResolution, ModuleResolver,
+    ProjectSources, Reference, ReferenceId, RelativeResolver, Resolution, ScopeDomain, analyze,
 };
 use std::{
     collections::{BTreeMap, HashMap},
@@ -99,6 +99,24 @@ pub struct ProjectReference<'a> {
     pub path: &'a Path,
     pub reference: &'a Reference,
     pub import: Option<ProjectImport<'a>>,
+}
+
+/// A template use of a component imported from another file.
+#[derive(Debug, Clone, Copy)]
+pub struct ProjectComponentUse<'a> {
+    /// Path of the file containing the component use.
+    pub path: &'a Path,
+    pub component: &'a ComponentUse,
+    /// The element carrying the passed attributes and slot assignment.
+    pub element: &'a Element,
+    pub import: ProjectImport<'a>,
+}
+
+/// A borrowed frontmatter export and its containing file.
+#[derive(Debug, Clone, Copy)]
+pub struct ProjectExport<'a> {
+    pub path: &'a Path,
+    pub export: &'a Export,
 }
 
 #[derive(Debug)]
@@ -208,6 +226,67 @@ impl ProjectSnapshot {
                 }
             })
             .collect()
+    }
+
+    /// Template component uses whose root reference is an import resolved to
+    /// `path`, including member components such as `<ui.Button>`. Each result
+    /// carries the element, so passed attributes, directives, and slot
+    /// assignments are available without a second lookup.
+    pub fn component_uses_of(&self, path: impl AsRef<Path>) -> Vec<ProjectComponentUse<'_>> {
+        self.references_to_file(path)
+            .into_iter()
+            .flat_map(|usage| {
+                let facts = self.files[usage.path]
+                    .analysis
+                    .as_ref()
+                    .as_ref()
+                    .expect("indexed facts");
+                facts
+                    .components
+                    .iter()
+                    .filter(move |component| component.reference.id == usage.reference.id)
+                    .map(move |component| ProjectComponentUse {
+                        path: usage.path,
+                        component,
+                        element: &facts.elements[component.element.0],
+                        import: usage.import.expect("file reference has an import"),
+                    })
+            })
+            .collect()
+    }
+
+    /// Exports with role [`ExportRole::Other`] that no resolved import names.
+    ///
+    /// A namespace import of the file counts as using every export. Astro and
+    /// Props exports are read by Astro itself and are never reported. Imports
+    /// from unresolved modules, re-exports in other files, and non-`.astro`
+    /// consumers are not seen, so callers should treat results as candidates.
+    pub fn unused_exports(&self) -> Vec<ProjectExport<'_>> {
+        let mut unused = Vec::new();
+        for (path, file) in &self.files {
+            let Ok(facts) = file.analysis.as_ref() else {
+                continue;
+            };
+            let imports = self.incoming_imports(path);
+            let used = |name: &str| {
+                imports
+                    .iter()
+                    .flat_map(|i| &i.import.bindings)
+                    .any(|binding| match &binding.target.specifier {
+                        ImportSpecifier::Namespace => true,
+                        ImportSpecifier::Named(imported) => imported == name,
+                        ImportSpecifier::Default => false,
+                    })
+            };
+            unused.extend(
+                facts
+                    .exports
+                    .iter()
+                    .filter(|export| export.role == ExportRole::Other && !used(&export.name))
+                    .map(|export| ProjectExport { path, export }),
+            );
+        }
+        unused
     }
 
     /// Find a file-local reference and its originating import, if any.

@@ -48,8 +48,8 @@ pub use facts::*;
 #[cfg(feature = "incremental")]
 pub use incremental::AnalysisDatabase;
 pub use project::{
-    ProjectFile, ProjectImport, ProjectReference, ProjectRevision, ProjectSnapshot,
-    analyze_project, analyze_project_with_resolver,
+    ProjectComponentUse, ProjectExport, ProjectFile, ProjectImport, ProjectReference,
+    ProjectRevision, ProjectSnapshot, analyze_project, analyze_project_with_resolver,
 };
 pub use resolver::{
     ModuleRequest, ModuleResolution, ModuleResolver, ProjectSources, RelativeResolver,
