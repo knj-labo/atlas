@@ -29,6 +29,7 @@
 //! IDs must come from the same analysis result, including after source updates.
 
 mod analyze;
+mod boundary;
 mod css;
 mod css_source;
 mod facts;
@@ -43,6 +44,7 @@ mod resolver;
 mod scripts;
 mod semantic;
 mod syntax;
+mod transfer;
 mod validate;
 
 pub use analyze::analyze;
@@ -62,6 +64,7 @@ pub use report::{
 pub use resolver::{
     ModuleRequest, ModuleResolution, ModuleResolver, ProjectSources, RelativeResolver,
 };
+pub use transfer::*;
 
 #[cfg(test)]
 #[path = "../tests/support/snapshots.rs"]

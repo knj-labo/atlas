@@ -70,6 +70,19 @@ Implementation references:
 
 ## Reproduction and review
 
+[transfer.rs](../tests/transfer.rs) verifies the Rust-only boundary facts and
+method-specific transfer assessments. Cases cover primitive const/alias origins,
+shadowing and independent browser scripts, BigInt/function value handling,
+unknown mutable aggregates and dynamic expressions, cycles and collection limits,
+directive and effective-input uncertainty, script mode conditions, and original
+Unicode/CRLF spans. Recursive value origins and direct input references are
+checked against canonical reference/declaration IDs. Feature-gated checks retain
+earlier cached assessments across updates/database destruction and verify the
+unchanged FileFacts JSON and ProjectReport schema. Existing snapshot baselines
+and compiler fixtures stay unchanged; the latter verify syntax/extraction rather
+than the new value-format rules. See [ADR 0005](adr/0005-semantic-boundaries-and-transfer.md)
+for the pinned runtime contracts and compiler use constraints.
+
 [queries.rs](../tests/queries.rs) checks exact declaration names and import aliases,
 lexical shadowing, source ordering across template and script domains, borrowed
 record identity, explicit resolution states, injected bindings, type references,

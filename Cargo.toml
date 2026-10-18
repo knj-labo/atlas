@@ -13,7 +13,7 @@ oxc_diagnostics = { git = "https://github.com/jp-knj/oxc-atlas", rev = "8ef5b6a7
 oxc_parser = { git = "https://github.com/jp-knj/oxc-atlas", rev = "8ef5b6a720bab87987dbc33f569af9d784c06850", features = ["regular_expression"] }
 oxc_semantic = { git = "https://github.com/jp-knj/oxc-atlas", rev = "8ef5b6a720bab87987dbc33f569af9d784c06850", features = ["astro"] }
 oxc_span = { git = "https://github.com/jp-knj/oxc-atlas", rev = "8ef5b6a720bab87987dbc33f569af9d784c06850" }
-oxc_syntax = { git = "https://github.com/jp-knj/oxc-atlas", rev = "8ef5b6a720bab87987dbc33f569af9d784c06850" }
+oxc_syntax = { git = "https://github.com/jp-knj/oxc-atlas", rev = "8ef5b6a720bab87987dbc33f569af9d784c06850", features = ["to_js_string"] }
 
 lightningcss = { version = "=1.0.0-alpha.72", default-features = false, features = ["visitor"] }
 cssparser = "=0.37.0"
