@@ -14,6 +14,7 @@ id_type!(
     ScopeId,
     ReferenceId,
     ElementId,
+    BoundaryId,
     StyleId,
     CssRuleId,
     CssDeclarationId
@@ -39,6 +40,10 @@ pub struct FileFacts {
     pub styles: Vec<Style>,
     pub builtin_uses: Vec<BuiltinUse>,
     pub diagnostics: Vec<Diagnostic>,
+    /// Explicit server/browser boundaries. Rust-only until the report contract
+    /// includes transfer analysis; the existing serialized facts stay unchanged.
+    #[cfg_attr(any(feature = "serde", test), serde(skip))]
+    pub boundaries: Vec<crate::BoundaryFact>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

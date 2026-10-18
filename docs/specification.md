@@ -44,6 +44,7 @@ All rows marked Supported below passed. Rust tests are in [spec.rs](../tests/spe
 | Classic-script globals | Another script's matching root declarations are runtime candidates; no definite cross-script binding | Dynamic | `inline_classic_globals_are_candidates_not_definite_lexical_bindings` |
 | Script `define:vars` aliases, shorthand, computed literal keys, normalization | New injected IDs and key/value/origin-reference spans; nested parameters shadow injection | Supported static keys; dynamic keys/spreads unknown | `define_vars_aliases_keys_and_nested_shadowing_have_distinct_identity`; phase-1 define-vars test; `injection` fixture |
 | Injection redeclarations, duplicate and invalid keys | Same-scope collisions produce semantic errors; duplicate object keys use final value; invalid normalized keys produce Astro diagnostics | Supported static keys; expression serialization not executed | `define_vars_static_collision_is_an_error_and_dynamic_keys_remain_unknown`; `define_vars_duplicate_and_computed_literal_keys_follow_object_semantics` |
+| Explicit server/browser value transfer | Rust-only owned boundaries for script `define:vars` and known client component props; per-input method support, reasons, source evidence and unverified assumptions | Conservative static values and primitive const aliases; runtime execution, renderer availability, disclosure and optimization safety require separate checks | `tests/transfer.rs`; [ADR 0005](adr/0005-semantic-boundaries-and-transfer.md) |
 | Scoped/global/inline styles, language attrs and style attributes | Mode, original content and language retained; standard CSS parsed | Supported | `style_modes_preprocessors_and_dynamic_style_values_are_explicit`; `styles`, `inline-css` fixtures |
 | SCSS, Sass, Less, dynamic lang, dynamic style objects | Original expression/language retained, no false standard-CSS syntax error | Dynamic / out of scope for preprocessor execution | style-mode/receiver Rust tests; `styles` fixture |
 | Style `define:vars` | Effective extracted styles retain custom-property injection names, original key/value and server refs; inline/non-hoistable styles retain attributes without injected definitions | Supported static keys; dynamic injection flagged | `css_custom_properties_registrations_keyframes_urls_fallbacks_and_injection`; `style-injection` fixture |
@@ -69,6 +70,36 @@ All rows marked Supported below passed. Rust tests are in [spec.rs](../tests/spe
 `FileFacts::references_to(id)` returns borrowed references whose `Resolution::Resolved` binding has that declaration ID. Value and type references are included. Unresolved identifiers, builtins, and runtime-dependent candidates do not count as definite uses. Missing names or unknown declaration IDs yield empty vectors. Multiple results are ordered by `(span.start, span.end, id)` without reordering stored records or changing IDs.
 
 The methods cover frontmatter, template, and eligible browser-script records already in `FileFacts`. CSS candidates and cross-file lookup are outside this search API. Queries perform no analysis or I/O and introduce no new error type. IDs must come from the same result; a numeric ID reused by another result cannot be distinguished. Tests are in [queries.rs](../tests/queries.rs), with cached-result and update coverage in [incremental.rs](../tests/incremental.rs).
+
+## Boundary transfer API
+
+`FileFacts.boundaries` records explicit handoffs independently of lexical scopes.
+`BoundaryFact.evaluation` identifies where inputs are evaluated, and
+`destination` identifies a browser domain when its mode is established.
+`FileFacts::assess_transfer(id)` returns an owned `TransferAssessment`, or `None`
+for an invalid result-local ID. It uses collected value facts without parsing,
+I/O, or source execution. Inputs retain their names, original source text/spans,
+reference IDs, and primitive constant origins. Assessment reasons identify
+support or missing evidence at original UTF-8 byte positions.
+
+Script `define:vars` uses `JsonScript`; known client component directives use
+`AstroProps`. Directive attributes and `slot` are excluded from props. Primitive
+literals, simple same-file primitive const aliases, and static arrays/plain
+objects are supported. BigInt is supported only by `AstroProps`; direct function
+values are unsupported by both methods. Identifier-backed arrays/objects,
+mutable bindings, calls, imports, dynamic keys, spreads, and unsupported
+expressions stay unknown. This classification does not infer object immutability
+from `const` or evaluate arbitrary expressions.
+
+`Supported` concerns the chosen value format. The result's shared `assumptions`
+also apply to every input: directive validity, duplicate/dynamic input sets,
+unconfirmed script execution, renderer availability, data disclosure, and code
+movement require independent decisions. Syntactic duplicate inputs are retained
+without selecting an effective value. Custom client directives alone have no
+inferred boundary method. Empty input sets have empty assessment input lists.
+The API is initially Rust-only: new facts are excluded from existing FileFacts
+JSON, and ProjectReport schema version 1 is unchanged. Details and compiler
+applications are in [ADR 0005](adr/0005-semantic-boundaries-and-transfer.md).
 
 ## Incremental API
 

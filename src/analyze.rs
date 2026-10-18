@@ -83,6 +83,13 @@ pub fn analyze(source: &str) -> Result<FileFacts, AnalysisError> {
     }
     crate::css::analyze_styles(source, &mut facts)?;
     crate::validate::validate(&mut facts);
+    crate::boundary::collect(
+        source,
+        &parsed.root,
+        &result.semantic,
+        &projection,
+        &mut facts,
+    );
     canonicalize(&mut facts);
     Ok(facts)
 }
@@ -150,6 +157,7 @@ fn canonicalize(facts: &mut FileFacts) {
             }
         }
     }
+    crate::boundary::remap_references(&mut facts.boundaries, &ids);
     facts.scripts.sort_by_key(|s| s.span.start);
     facts
         .builtin_uses
