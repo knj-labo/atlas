@@ -1,4 +1,4 @@
-use atlas::{ExportRole, analyze};
+use atlas::{ExportRole, ImportSpecifier, analyze};
 
 #[test]
 fn frontmatter_exports_record_role_local_declaration_and_type_only() {
@@ -97,4 +97,31 @@ fn roles_require_the_matching_type_or_value_meaning() {
     let source = "---\nexport const Props = 1;\nexport type prerender = boolean;\n---";
     let facts = analyze(source).unwrap();
     assert!(facts.exports.iter().all(|e| e.role == ExportRole::Other));
+}
+
+#[test]
+fn re_exports_keep_the_name_taken_from_the_source_module() {
+    let source = r#"---
+const local = 1;
+export { local as renamed };
+export { a as X, b } from "./m";
+export { default as D } from "./d";
+export * as ui from "./ui";
+---"#;
+    let facts = analyze(source).unwrap();
+    let summary: Vec<_> = facts
+        .exports
+        .iter()
+        .map(|e| (e.name.as_str(), e.imported.clone()))
+        .collect();
+    assert_eq!(
+        summary,
+        [
+            ("renamed", None),
+            ("X", Some(ImportSpecifier::Named("a".into()))),
+            ("b", Some(ImportSpecifier::Named("b".into()))),
+            ("D", Some(ImportSpecifier::Default)),
+            ("ui", Some(ImportSpecifier::Namespace)),
+        ]
+    );
 }

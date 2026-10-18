@@ -164,7 +164,11 @@ pub(crate) fn project(
             };
             let source = source.map(|s| s.value.to_string());
             let type_export = export_kind == ast::ImportOrExportKind::Type;
-            let mut push = |name: &str, span, symbol: Option<SymbolId>, type_export: bool| {
+            let mut push = |name: &str,
+                            span,
+                            symbol: Option<SymbolId>,
+                            imported: Option<ImportSpecifier>,
+                            type_export: bool| {
                 // Local declarations use Oxc's symbol meaning; re-exports rely on
                 // the explicit `type` modifier because their target is not opened.
                 let type_only = type_export
@@ -174,6 +178,7 @@ pub(crate) fn project(
                     span: range(span),
                     local: symbol.map(|id| symbols[&id].id),
                     source: source.clone(),
+                    imported,
                     type_only,
                     role: match name {
                         "getStaticPaths" | "prerender" | "partial" if !type_only => {
@@ -187,20 +192,26 @@ pub(crate) fn project(
             match node.kind() {
                 AstKind::ExportAllDeclaration(export) => {
                     if let Some(exported) = &export.exported {
-                        push(&exported.name(), exported.span(), None, type_export);
+                        push(
+                            &exported.name(),
+                            exported.span(),
+                            None,
+                            Some(ImportSpecifier::Namespace),
+                            type_export,
+                        );
                     }
                 }
                 AstKind::ExportNamedDeclaration(export) => match &export.declaration {
                     Some(ast::Declaration::VariableDeclaration(variables)) => {
                         for declarator in &variables.declarations {
                             for id in declarator.id.get_binding_identifiers() {
-                                push(&id.name, id.span, id.symbol_id.get(), type_export);
+                                push(&id.name, id.span, id.symbol_id.get(), None, type_export);
                             }
                         }
                     }
                     Some(declaration) => {
                         if let Some(id) = declaration.id() {
-                            push(&id.name, id.span, id.symbol_id.get(), type_export);
+                            push(&id.name, id.span, id.symbol_id.get(), None, type_export);
                         }
                     }
                     None => {
@@ -219,6 +230,12 @@ pub(crate) fn project(
                                 &specifier.exported.name(),
                                 specifier.exported.span(),
                                 symbol,
+                                source
+                                    .as_ref()
+                                    .map(|_| match specifier.local.name().as_str() {
+                                        "default" => ImportSpecifier::Default,
+                                        name => ImportSpecifier::Named(name.into()),
+                                    }),
                                 type_export
                                     || specifier.export_kind == ast::ImportOrExportKind::Type,
                             );
