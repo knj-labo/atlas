@@ -13,6 +13,7 @@ expression: "render::snapshot(&result)"
     {"attributes":[{"literal":{"Boolean":true},"name":"client:load","name_span":[9,20],"span":[9,20],"spread":false,"value":null}],"closing_span":null,"directives":[{"name":"client:load","name_span":[9,20],"span":[9,20],"status":"RequiresProjectContext","value":null}],"id":"e0","kind":"Component","name":"Missing","name_span":[1,8],"opening_span":[0,22],"parent":null,"reference":"r0","slot":null,"span":[0,22],"text":[]},
     {"attributes":[{"literal":{"String":"value"},"name":"xmlns:test","name_span":[38,48],"span":[38,56],"spread":false,"value":{"kind":"String","raw":"\"value\"","span":[49,56]}}],"closing_span":null,"directives":[{"name":"xmlns:test","name_span":[38,48],"span":[38,56],"status":"UnknownDirective","value":{"kind":"String","raw":"\"value\"","span":[49,56]}}],"id":"e1","kind":"CustomElement","name":"custom-element","name_span":[23,37],"opening_span":[22,58],"parent":null,"reference":null,"slot":null,"span":[22,58],"text":[]}
   ],
+  "exports": [],
   "imports": [],
   "references": [
     {"id":"r0","kind":"Value","name":"Missing","resolution":"Unresolved","scope":"s0","span":[1,8]}

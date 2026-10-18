@@ -14,6 +14,7 @@ expression: "render::snapshot(&result)"
   "elements": [
     {"attributes":[{"literal":{"String":"module"},"name":"type","name_span":[8,12],"span":[8,21],"spread":false,"value":{"kind":"String","raw":"\"module\"","span":[13,21]}},{"literal":{"Object":[["yield",{"Number":"1"}],["await",{"Number":"2"}],["implements",{"Number":"3"}]]},"name":"define:vars","name_span":[22,33],"span":[22,66],"spread":false,"value":{"kind":"Expression","raw":"{{yield:1,await:2,implements:3}}","span":[34,66]}}],"closing_span":[67,76],"directives":[{"name":"define:vars","name_span":[22,33],"span":[22,66],"status":"Valid","value":{"kind":"Expression","raw":"{{yield:1,await:2,implements:3}}","span":[34,66]}}],"id":"e0","kind":"Script","name":"script","name_span":[1,7],"opening_span":[0,67],"parent":null,"reference":null,"slot":null,"span":[0,76],"text":[]}
   ],
+  "exports": [],
   "imports": [],
   "references": [],
   "scopes": [

@@ -37,6 +37,8 @@ mod incremental;
 mod markup;
 mod project;
 mod query;
+#[cfg(feature = "serde")]
+mod report;
 mod resolver;
 mod scripts;
 mod semantic;
@@ -48,8 +50,13 @@ pub use facts::*;
 #[cfg(feature = "incremental")]
 pub use incremental::AnalysisDatabase;
 pub use project::{
-    ProjectFile, ProjectImport, ProjectReference, ProjectRevision, ProjectSnapshot,
-    analyze_project, analyze_project_with_resolver,
+    ProjectComponentUse, ProjectExport, ProjectFile, ProjectImport, ProjectReference,
+    ProjectRevision, ProjectSnapshot, analyze_project, analyze_project_with_resolver,
+};
+#[cfg(feature = "serde")]
+pub use report::{
+    ComponentUseReport, ExportReport, FileReport, ImportReport, ProjectReport,
+    REPORT_SCHEMA_VERSION,
 };
 pub use resolver::{
     ModuleRequest, ModuleResolution, ModuleResolver, ProjectSources, RelativeResolver,

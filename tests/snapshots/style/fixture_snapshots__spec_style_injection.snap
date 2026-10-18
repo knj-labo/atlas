@@ -12,6 +12,7 @@ expression: "render::snapshot(&result)"
   "elements": [
     {"attributes":[{"literal":null,"name":"define:vars","name_span":[33,44],"span":[33,60],"spread":false,"value":{"kind":"Expression","raw":"{{accent:tone}}","span":[45,60]}}],"closing_span":[88,96],"directives":[{"name":"define:vars","name_span":[33,44],"span":[33,60],"status":"Dynamic","value":{"kind":"Expression","raw":"{{accent:tone}}","span":[45,60]}}],"id":"e0","kind":"Style","name":"style","name_span":[27,32],"opening_span":[26,61],"parent":null,"reference":null,"slot":null,"span":[26,96],"text":[{"raw":".a{color:var(--accent,red)}","span":[61,88]}]}
   ],
+  "exports": [],
   "imports": [],
   "references": [
     {"id":"r0","kind":"Value","name":"tone","resolution":{"Resolved":"d0"},"scope":"s0","span":[54,58]}

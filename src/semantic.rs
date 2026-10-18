@@ -149,6 +149,103 @@ pub(crate) fn project(
         facts.declarations.push(binding.clone());
         symbols.insert(id, binding);
     }
+    if domain == ScopeDomain::Server {
+        for node in semantic.nodes().iter() {
+            // Exports inside namespaces and ambient modules are not module exports.
+            if !matches!(semantic.nodes().parent_kind(node.id()), AstKind::Program(_)) {
+                continue;
+            }
+            let (export_kind, source) = match node.kind() {
+                AstKind::ExportNamedDeclaration(export) => {
+                    (export.export_kind, export.source.as_ref())
+                }
+                AstKind::ExportAllDeclaration(export) => (export.export_kind, Some(&export.source)),
+                _ => continue,
+            };
+            let source = source.map(|s| s.value.to_string());
+            let type_export = export_kind == ast::ImportOrExportKind::Type;
+            let mut push = |name: &str,
+                            span,
+                            symbol: Option<SymbolId>,
+                            imported: Option<ImportSpecifier>,
+                            type_export: bool| {
+                // Local declarations use Oxc's symbol meaning; re-exports rely on
+                // the explicit `type` modifier because their target is not opened.
+                let type_only = type_export
+                    || symbol.is_some_and(|id| !semantic.scoping().symbol_flags(id).is_value());
+                facts.exports.push(Export {
+                    name: name.into(),
+                    span: range(span),
+                    local: symbol.map(|id| symbols[&id].id),
+                    source: source.clone(),
+                    imported,
+                    type_only,
+                    role: match name {
+                        "getStaticPaths" | "prerender" | "partial" if !type_only => {
+                            ExportRole::Astro
+                        }
+                        "Props" if type_only => ExportRole::Props,
+                        _ => ExportRole::Other,
+                    },
+                });
+            };
+            match node.kind() {
+                AstKind::ExportAllDeclaration(export) => {
+                    if let Some(exported) = &export.exported {
+                        push(
+                            &exported.name(),
+                            exported.span(),
+                            None,
+                            Some(ImportSpecifier::Namespace),
+                            type_export,
+                        );
+                    }
+                }
+                AstKind::ExportNamedDeclaration(export) => match &export.declaration {
+                    Some(ast::Declaration::VariableDeclaration(variables)) => {
+                        for declarator in &variables.declarations {
+                            for id in declarator.id.get_binding_identifiers() {
+                                push(&id.name, id.span, id.symbol_id.get(), None, type_export);
+                            }
+                        }
+                    }
+                    Some(declaration) => {
+                        if let Some(id) = declaration.id() {
+                            push(&id.name, id.span, id.symbol_id.get(), None, type_export);
+                        }
+                    }
+                    None => {
+                        for specifier in &export.specifiers {
+                            let symbol = match &specifier.local {
+                                ast::ModuleExportName::IdentifierReference(r)
+                                    if source.is_none() =>
+                                {
+                                    r.reference_id.get().and_then(|r| {
+                                        semantic.scoping().get_reference(r).symbol_id()
+                                    })
+                                }
+                                _ => None,
+                            };
+                            push(
+                                &specifier.exported.name(),
+                                specifier.exported.span(),
+                                symbol,
+                                source
+                                    .as_ref()
+                                    .map(|_| match specifier.local.name().as_str() {
+                                        "default" => ImportSpecifier::Default,
+                                        name => ImportSpecifier::Named(name.into()),
+                                    }),
+                                type_export
+                                    || specifier.export_kind == ast::ImportOrExportKind::Type,
+                            );
+                        }
+                    }
+                },
+                _ => unreachable!(),
+            }
+        }
+    }
     let mut references = HashMap::new();
     for node in semantic.nodes().iter() {
         if let AstKind::IdentifierReference(identifier) = node.kind() {

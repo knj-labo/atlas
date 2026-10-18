@@ -32,6 +32,7 @@ pub struct FileFacts {
     pub components: Vec<ComponentUse>,
     pub elements: Vec<Element>,
     pub declarations: Vec<Binding>,
+    pub exports: Vec<Export>,
     pub scopes: Vec<Scope>,
     pub references: Vec<Reference>,
     pub scripts: Vec<Script>,
@@ -263,6 +264,31 @@ pub enum DeclarationKind {
     Parameter,
     Type,
     Injected,
+    Other,
+}
+/// An explicit frontmatter export. The component itself is the implicit
+/// default export of every `.astro` file and is not listed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(any(feature = "serde", test), derive(serde::Serialize))]
+pub struct Export {
+    pub name: String,
+    pub span: Range<u32>,
+    /// The local declaration; `None` for re-exports.
+    pub local: Option<DeclarationId>,
+    /// The module specifier of a re-export.
+    pub source: Option<String>,
+    /// The name taken from `source` by a re-export; `None` for local exports.
+    pub imported: Option<ImportSpecifier>,
+    pub type_only: bool,
+    pub role: ExportRole,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(any(feature = "serde", test), derive(serde::Serialize))]
+pub enum ExportRole {
+    /// Read by Astro: `getStaticPaths`, `prerender`, or `partial`.
+    Astro,
+    /// The component's `Props` type.
+    Props,
     Other,
 }
 #[derive(Debug, Clone, PartialEq, Eq)]

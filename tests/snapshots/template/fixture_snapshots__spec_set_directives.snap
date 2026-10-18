@@ -12,6 +12,7 @@ expression: "render::snapshot(&result)"
     {"attributes":[{"literal":null,"name":"set:text","name_span":[27,35],"span":[27,42],"spread":false,"value":{"kind":"Expression","raw":"{text}","span":[36,42]}}],"closing_span":null,"directives":[{"name":"set:text","name_span":[27,35],"span":[27,42],"status":"Dynamic","value":{"kind":"Expression","raw":"{text}","span":[36,42]}}],"id":"e1","kind":"Html","name":"div","name_span":[23,26],"opening_span":[22,44],"parent":null,"reference":null,"slot":null,"span":[22,44],"text":[]},
     {"attributes":[{"literal":null,"name":"set:html","name_span":[51,59],"span":[51,65],"spread":false,"value":{"kind":"Expression","raw":"{css}","span":[60,65]}}],"closing_span":[66,74],"directives":[{"name":"set:html","name_span":[51,59],"span":[51,65],"status":"Dynamic","value":{"kind":"Expression","raw":"{css}","span":[60,65]}}],"id":"e2","kind":"Style","name":"style","name_span":[45,50],"opening_span":[44,66],"parent":null,"reference":null,"slot":null,"span":[44,74],"text":[]}
   ],
+  "exports": [],
   "imports": [],
   "references": [
     {"id":"r0","kind":"Value","name":"html","resolution":"Unresolved","scope":"s0","span":[15,19]},

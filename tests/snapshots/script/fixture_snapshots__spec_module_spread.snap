@@ -12,6 +12,7 @@ expression: "render::snapshot(&result)"
   "elements": [
     {"attributes":[{"literal":{"String":"module"},"name":"type","name_span":[8,12],"span":[8,21],"spread":false,"value":{"kind":"String","raw":"\"module\"","span":[13,21]}},{"literal":null,"name":null,"name_span":null,"span":[22,32],"spread":true,"value":{"kind":"Expression","raw":"{...attrs}","span":[22,32]}}],"closing_span":[47,56],"directives":[],"id":"e0","kind":"Script","name":"script","name_span":[1,7],"opening_span":[0,33],"parent":null,"reference":null,"slot":null,"span":[0,56],"text":[]}
   ],
+  "exports": [],
   "imports": [],
   "references": [
     {"id":"r0","kind":"Value","name":"attrs","resolution":"Unresolved","scope":"s0","span":[26,31]}

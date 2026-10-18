@@ -19,6 +19,7 @@ expression: "render::snapshot(&result)"
     {"attributes":[],"closing_span":[153,164],"directives":[],"id":"e5","kind":"Html","name":"template","name_span":[116,124],"opening_span":[115,125],"parent":null,"reference":null,"slot":null,"span":[115,164],"text":[]},
     {"attributes":[],"closing_span":[145,153],"directives":[],"id":"e6","kind":"Style","name":"style","name_span":[126,131],"opening_span":[125,132],"parent":"e5","reference":null,"slot":null,"span":[125,153],"text":[{"raw":".b{color:red}","span":[132,145]}]}
   ],
+  "exports": [],
   "imports": [],
   "references": [
     {"id":"r0","kind":"Value","name":"a","resolution":{"Resolved":"d0"},"scope":"s1","span":[23,24]}

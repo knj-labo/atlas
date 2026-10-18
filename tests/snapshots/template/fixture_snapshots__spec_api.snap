@@ -29,6 +29,7 @@ expression: "render::snapshot(&result)"
     {"attributes":[],"closing_span":null,"directives":[],"id":"e0","kind":"SelfComponent","name":"Astro.self","name_span":[112,122],"opening_span":[111,125],"parent":null,"reference":"r4","slot":null,"span":[111,125],"text":[]},
     {"attributes":[],"closing_span":null,"directives":[],"id":"e1","kind":"Slot","name":"slot","name_span":[127,131],"opening_span":[126,133],"parent":null,"reference":null,"slot":null,"span":[126,133],"text":[]}
   ],
+  "exports": [],
   "imports": [],
   "references": [
     {"id":"r0","kind":"Value","name":"Astro","resolution":{"Builtin":"Astro"},"scope":"s0","span":[16,21]},

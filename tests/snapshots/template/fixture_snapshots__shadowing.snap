@@ -30,6 +30,7 @@ expression: "render::snapshot(&result)"
     {"attributes":[{"literal":{"Boolean":true},"name":"data-after","name_span":[340,350],"span":[340,350],"spread":false,"value":null}],"closing_span":null,"directives":[],"id":"e5","kind":"Dynamic","name":"Counter","name_span":[332,339],"opening_span":[331,353],"parent":"e2","reference":"r9","slot":null,"span":[331,353],"text":[]},
     {"attributes":[{"literal":{"Boolean":true},"name":"data-root","name_span":[376,385],"span":[376,385],"spread":false,"value":null}],"closing_span":null,"directives":[],"id":"e6","kind":"Component","name":"Counter","name_span":[368,375],"opening_span":[367,388],"parent":null,"reference":"r10","slot":null,"span":[367,388],"text":[]}
   ],
+  "exports": [],
   "imports": [
     {"bindings":[{"name":"Counter","span":[11,18],"target":{"source":"./Counter.astro","specifier":"Default","type_only":false}}],"source":"./Counter.astro","source_span":[24,41],"span":[4,42]},
     {"bindings":[{"name":"NamedCounter","span":[63,75],"target":{"source":"./components","specifier":{"Named":"Counter"},"type_only":false}}],"source":"./components","source_span":[83,97],"span":[43,98]}

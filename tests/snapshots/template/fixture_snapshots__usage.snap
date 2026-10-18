@@ -21,6 +21,7 @@ expression: "render::snapshot(&result)"
     {"attributes":[{"literal":{"String":"react"},"name":"client:only","name_span":[346,357],"span":[346,365],"spread":false,"value":{"kind":"String","raw":"\"react\"","span":[358,365]}}],"closing_span":null,"directives":[{"name":"client:only","name_span":[346,357],"span":[346,365],"status":"RequiresProjectContext","value":{"kind":"String","raw":"\"react\"","span":[358,365]}}],"id":"e3","kind":"Component","name":"Counter","name_span":[338,345],"opening_span":[337,368],"parent":null,"reference":"r3","slot":null,"span":[337,368],"text":[]},
     {"attributes":[],"closing_span":null,"directives":[],"id":"e4","kind":"Component","name":"Counter","name_span":[370,377],"opening_span":[369,380],"parent":null,"reference":"r4","slot":null,"span":[369,380],"text":[]}
   ],
+  "exports": [],
   "imports": [
     {"bindings":[{"name":"Counter","span":[11,18],"target":{"source":"./Counter.astro","specifier":"Default","type_only":false}}],"source":"./Counter.astro","source_span":[24,41],"span":[4,42]}
   ],
