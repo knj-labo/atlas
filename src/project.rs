@@ -119,6 +119,22 @@ pub struct ProjectExport<'a> {
     pub export: &'a Export,
 }
 
+/// A re-export, its containing file, and the resolution of its module.
+#[derive(Debug, Clone, Copy)]
+pub struct ProjectReExport<'a> {
+    /// Path of the file containing the re-export.
+    pub path: &'a Path,
+    pub export: &'a Export,
+    pub resolution: &'a ModuleResolution,
+}
+
+#[derive(Debug)]
+struct ReExportEdge {
+    path: PathBuf,
+    index: usize,
+    resolution: ModuleResolution,
+}
+
 #[derive(Debug)]
 struct Dependency {
     path: PathBuf,
@@ -130,6 +146,7 @@ struct Dependency {
 #[derive(Debug, Default)]
 struct FileIndex {
     imports: Vec<usize>,
+    reexports: Vec<usize>,
     bindings: HashMap<DeclarationId, usize>,
 }
 
@@ -150,8 +167,8 @@ struct ImportUse {
 /// Imports and references are ordered by path, then original-source position.
 /// Failed files retain their `AnalysisError` and contribute no outgoing imports
 /// or references. Incoming imports can still resolve to those registered files.
-/// This indexes static import declarations and their lexical uses, not exports,
-/// re-exports, dynamic imports, script `src`, CSS, or transitive dependencies.
+/// This indexes static import declarations, re-exports, and lexical uses of
+/// imports, not dynamic imports, script `src`, or CSS dependencies.
 #[derive(Debug)]
 pub struct ProjectSnapshot {
     revision: Option<ProjectRevision>,
@@ -160,6 +177,8 @@ pub struct ProjectSnapshot {
     indexes: BTreeMap<PathBuf, FileIndex>,
     importers: BTreeMap<PathBuf, Vec<usize>>,
     references: BTreeMap<PathBuf, Vec<ImportUse>>,
+    reexports: Vec<ReExportEdge>,
+    reexporters: BTreeMap<PathBuf, Vec<usize>>,
 }
 
 impl ProjectSnapshot {
@@ -228,12 +247,38 @@ impl ProjectSnapshot {
             .collect()
     }
 
-    /// Template component uses whose root reference is an import resolved to
-    /// `path`, including member components such as `<ui.Button>`. Each result
-    /// carries the element, so passed attributes, directives, and slot
-    /// assignments are available without a second lookup.
+    /// Re-exports contained in `path`, regardless of their resolution state.
+    pub fn outgoing_reexports(&self, path: impl AsRef<Path>) -> Vec<ProjectReExport<'_>> {
+        self.indexes
+            .get(path.as_ref())
+            .into_iter()
+            .flat_map(|index| &index.reexports)
+            .map(|&edge| self.reexport(edge))
+            .collect()
+    }
+
+    /// Re-exports whose module resolved to the exact supplied target `path`.
+    pub fn incoming_reexports(&self, path: impl AsRef<Path>) -> Vec<ProjectReExport<'_>> {
+        self.reexporters
+            .get(path.as_ref())
+            .into_iter()
+            .flatten()
+            .map(|&edge| self.reexport(edge))
+            .collect()
+    }
+
+    /// Template component uses of the component defined in `path`.
+    ///
+    /// Direct uses are those whose root reference is an import resolved to
+    /// `path`, including member components such as `<ui.Button>`. Uses through
+    /// re-exports follow `export { default as Button } from` and `export *`
+    /// chains, then named imports or namespace members of the re-exporting file.
+    /// Each result carries the element, so passed attributes, directives, and
+    /// slot assignments are available without a second lookup.
     pub fn component_uses_of(&self, path: impl AsRef<Path>) -> Vec<ProjectComponentUse<'_>> {
-        self.references_to_file(path)
+        let path = path.as_ref();
+        let mut uses: Vec<_> = self
+            .references_to_file(path)
             .into_iter()
             .flat_map(|usage| {
                 let facts = self.files[usage.path]
@@ -252,14 +297,77 @@ impl ProjectSnapshot {
                         import: usage.import.expect("file reference has an import"),
                     })
             })
-            .collect()
+            .collect();
+        // Names under which other files re-export this component.
+        let mut aliases = vec![(path, ImportSpecifier::Default)];
+        let mut next = 0;
+        while let Some((target, specifier)) = aliases.get(next).cloned() {
+            next += 1;
+            for reexport in self.incoming_reexports(target) {
+                let export = reexport.export;
+                let forwards = match &export.imported {
+                    Some(imported) => *imported == specifier,
+                    None => specifier != ImportSpecifier::Default,
+                };
+                let name = if export.imported.is_none() {
+                    specifier.clone()
+                } else {
+                    ImportSpecifier::Named(export.name.clone())
+                };
+                if forwards && !aliases.contains(&(reexport.path, name.clone())) {
+                    aliases.push((reexport.path, name));
+                }
+            }
+        }
+        for (target, specifier) in aliases.iter().skip(1) {
+            let ImportSpecifier::Named(name) = specifier else {
+                continue;
+            };
+            for import in self.incoming_imports(target) {
+                let facts = self.files[import.path]
+                    .analysis
+                    .as_ref()
+                    .as_ref()
+                    .expect("indexed facts");
+                for binding in &import.import.bindings {
+                    let member = match &binding.target.specifier {
+                        ImportSpecifier::Named(imported) if imported == name => None,
+                        ImportSpecifier::Namespace => Some(format!("{}.{name}", binding.name)),
+                        _ => continue,
+                    };
+                    uses.extend(
+                        facts
+                            .components
+                            .iter()
+                            .filter(|component| {
+                                matches!(&component.reference.resolution,
+                                    Resolution::Resolved(local) if local.span == binding.span)
+                                    && member.as_ref().is_none_or(|m| component.name == *m)
+                            })
+                            .map(|component| ProjectComponentUse {
+                                path: import.path,
+                                component,
+                                element: &facts.elements[component.element.0],
+                                import,
+                            }),
+                    );
+                }
+            }
+        }
+        uses.sort_by(|a, b| {
+            (a.path, a.component.span.start).cmp(&(b.path, b.component.span.start))
+        });
+        uses
     }
 
-    /// Exports with role [`ExportRole::Other`] that no resolved import names.
+    /// Exports with role [`ExportRole::Other`] that no resolved import or
+    /// re-export names.
     ///
-    /// A namespace import of the file counts as using every export. Astro and
-    /// Props exports are read by Astro itself and are never reported. Imports
-    /// from unresolved modules, re-exports in other files, and non-`.astro`
+    /// A namespace import, `export * as`, or `export *` of the file counts as
+    /// using every named export. A re-export counts as a use of its target; the
+    /// re-exporting entry is itself reported when nothing uses it. Astro and
+    /// Props exports are read by Astro itself, and `export *` entries have no
+    /// name, so neither is reported. Unresolved modules and non-`.astro`
     /// consumers are not seen, so callers should treat results as candidates.
     pub fn unused_exports(&self) -> Vec<ProjectExport<'_>> {
         let mut unused = Vec::new();
@@ -268,21 +376,31 @@ impl ProjectSnapshot {
                 continue;
             };
             let imports = self.incoming_imports(path);
+            let reexports = self.incoming_reexports(path);
+            let names = |specifier: &ImportSpecifier, name: &str| match specifier {
+                ImportSpecifier::Namespace => true,
+                ImportSpecifier::Named(imported) => imported == name,
+                ImportSpecifier::Default => false,
+            };
             let used = |name: &str| {
                 imports
                     .iter()
                     .flat_map(|i| &i.import.bindings)
-                    .any(|binding| match &binding.target.specifier {
-                        ImportSpecifier::Namespace => true,
-                        ImportSpecifier::Named(imported) => imported == name,
-                        ImportSpecifier::Default => false,
+                    .any(|binding| names(&binding.target.specifier, name))
+                    || reexports.iter().any(|r| match &r.export.imported {
+                        Some(imported) => names(imported, name),
+                        None => true,
                     })
             };
             unused.extend(
                 facts
                     .exports
                     .iter()
-                    .filter(|export| export.role == ExportRole::Other && !used(&export.name))
+                    .filter(|export| {
+                        export.role == ExportRole::Other
+                            && export.name != "*"
+                            && !used(&export.name)
+                    })
                     .map(|export| ProjectExport { path, export }),
             );
         }
@@ -311,6 +429,20 @@ impl ProjectSnapshot {
             reference,
             import,
         })
+    }
+
+    fn reexport(&self, edge: usize) -> ProjectReExport<'_> {
+        let edge = &self.reexports[edge];
+        let facts = self.files[&edge.path]
+            .analysis
+            .as_ref()
+            .as_ref()
+            .expect("indexed facts");
+        ProjectReExport {
+            path: &edge.path,
+            export: &facts.exports[edge.index],
+            resolution: &edge.resolution,
+        }
     }
 
     fn import(&self, index: usize) -> ProjectImport<'_> {
@@ -345,6 +477,24 @@ impl ProjectSnapshot {
             indexes: BTreeMap::new(),
             importers: BTreeMap::new(),
             references: BTreeMap::new(),
+            reexports: Vec::new(),
+            reexporters: BTreeMap::new(),
+        };
+        let resolve = |importer: &Path, import: &Import, domain| {
+            let resolution = resolver.resolve(
+                ModuleRequest {
+                    importer,
+                    import,
+                    domain,
+                },
+                &context,
+            );
+            match resolution {
+                ModuleResolution::Resolved(target) if !context.contains(&target) => {
+                    ModuleResolution::Unresolved
+                }
+                resolution => resolution,
+            }
         };
         for (path, file) in &snapshot.files {
             let Ok(facts) = file.analysis.as_ref() else {
@@ -370,19 +520,7 @@ impl ProjectSnapshot {
                             && import.span.end <= scope.span.end
                     })
                     .map_or(ScopeDomain::Server, |scope| scope.domain);
-                let mut resolution = resolver.resolve(
-                    ModuleRequest {
-                        importer: path,
-                        import,
-                        domain,
-                    },
-                    &context,
-                );
-                if let ModuleResolution::Resolved(target) = &resolution
-                    && !context.contains(target)
-                {
-                    resolution = ModuleResolution::Unresolved;
-                }
+                let resolution = resolve(path, import, domain);
                 let dependency = snapshot.dependencies.len();
                 if let ModuleResolution::Resolved(target) = &resolution {
                     snapshot
@@ -419,6 +557,33 @@ impl ProjectSnapshot {
                             reference: reference.id,
                         });
                 }
+            }
+            for (export_index, export) in facts.exports.iter().enumerate() {
+                let Some(source) = &export.source else {
+                    continue;
+                };
+                // Resolvers receive re-exports as binding-free server imports.
+                let request = Import {
+                    span: export.span.clone(),
+                    source: source.clone(),
+                    source_span: export.span.clone(),
+                    bindings: Vec::new(),
+                };
+                let resolution = resolve(path, &request, ScopeDomain::Server);
+                let edge = snapshot.reexports.len();
+                if let ModuleResolution::Resolved(target) = &resolution {
+                    snapshot
+                        .reexporters
+                        .entry(target.clone())
+                        .or_default()
+                        .push(edge);
+                }
+                snapshot.reexports.push(ReExportEdge {
+                    path: path.clone(),
+                    index: export_index,
+                    resolution,
+                });
+                index.reexports.push(edge);
             }
             snapshot.indexes.insert(path.clone(), index);
         }

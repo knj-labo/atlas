@@ -190,17 +190,16 @@ pub(crate) fn project(
                 });
             };
             match node.kind() {
-                AstKind::ExportAllDeclaration(export) => {
-                    if let Some(exported) = &export.exported {
-                        push(
-                            &exported.name(),
-                            exported.span(),
-                            None,
-                            Some(ImportSpecifier::Namespace),
-                            type_export,
-                        );
-                    }
-                }
+                AstKind::ExportAllDeclaration(export) => match &export.exported {
+                    Some(exported) => push(
+                        &exported.name(),
+                        exported.span(),
+                        None,
+                        Some(ImportSpecifier::Namespace),
+                        type_export,
+                    ),
+                    None => push("*", export.span, None, None, type_export),
+                },
                 AstKind::ExportNamedDeclaration(export) => match &export.declaration {
                     Some(ast::Declaration::VariableDeclaration(variables)) => {
                         for declarator in &variables.declarations {

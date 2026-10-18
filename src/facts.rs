@@ -277,7 +277,8 @@ pub struct Export {
     pub local: Option<DeclarationId>,
     /// The module specifier of a re-export.
     pub source: Option<String>,
-    /// The name taken from `source` by a re-export; `None` for local exports.
+    /// The name taken from `source` by a re-export; `None` for local exports
+    /// and for `export * from`, which is recorded with the name `*`.
     pub imported: Option<ImportSpecifier>,
     pub type_only: bool,
     pub role: ExportRole,

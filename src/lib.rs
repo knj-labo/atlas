@@ -50,8 +50,9 @@ pub use facts::*;
 #[cfg(feature = "incremental")]
 pub use incremental::AnalysisDatabase;
 pub use project::{
-    ProjectComponentUse, ProjectExport, ProjectFile, ProjectImport, ProjectReference,
-    ProjectRevision, ProjectSnapshot, analyze_project, analyze_project_with_resolver,
+    ProjectComponentUse, ProjectExport, ProjectFile, ProjectImport, ProjectReExport,
+    ProjectReference, ProjectRevision, ProjectSnapshot, analyze_project,
+    analyze_project_with_resolver,
 };
 #[cfg(feature = "serde")]
 pub use report::{
