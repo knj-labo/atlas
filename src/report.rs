@@ -1,4 +1,6 @@
-use crate::{Diagnostic, ExportRole, ModuleResolution, ProjectSnapshot, ScopeDomain};
+use crate::{
+    Diagnostic, ExportRole, ImportSpecifier, ModuleResolution, ProjectSnapshot, ScopeDomain,
+};
 use serde::Serialize;
 use std::{ops::Range, path::Path};
 
@@ -36,6 +38,7 @@ pub struct ExportReport {
     pub role: ExportRole,
     pub type_only: bool,
     pub source: Option<String>,
+    pub imported: Option<ImportSpecifier>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -79,6 +82,7 @@ impl ProjectSnapshot {
                                 role: export.role,
                                 type_only: export.type_only,
                                 source: export.source.clone(),
+                                imported: export.imported.clone(),
                             })
                             .collect(),
                     ),

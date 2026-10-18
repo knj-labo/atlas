@@ -15,14 +15,16 @@ expression: "serde_json::to_string_pretty(&report).unwrap()"
           "name": "Props",
           "role": "Props",
           "type_only": true,
-          "source": null
+          "source": null,
+          "imported": null
         },
         {
           "key": "/v/Card.astro#58-65",
           "name": "variant",
           "role": "Other",
           "type_only": false,
-          "source": null
+          "source": null,
+          "imported": null
         }
       ],
       "imports": [],
