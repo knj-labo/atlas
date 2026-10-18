@@ -526,3 +526,58 @@ fn unused_exports_ignore_astro_roles_and_respect_named_and_namespace_imports() {
         .collect();
     assert_eq!(unused, [("/v/Lib.astro", "unused")]);
 }
+
+#[test]
+fn component_uses_follow_reexport_chains_and_namespace_members() {
+    let barrel = "---\nexport { default as Card } from './Card.astro';\n---";
+    let all = "---\nexport * from './index.astro';\n---";
+    let page = "---\nimport { Card } from './index.astro';\nimport * as ui from './all.astro';\nimport { Card as Other } from './Other.astro';\n---\n<Card a=\"1\" />\n<ui.Card />\n<Other />";
+    let snapshot = analyze_project([
+        ("/v/Card.astro", "<div />"),
+        ("/v/index.astro", barrel),
+        ("/v/all.astro", all),
+        ("/v/Other.astro", "---\nexport const Card = 1;\n---"),
+        ("/v/Page.astro", page),
+    ]);
+    let uses = snapshot.component_uses_of("/v/Card.astro");
+    let names: Vec<_> = uses.iter().map(|u| u.component.name.as_str()).collect();
+    assert_eq!(names, ["Card", "ui.Card"]);
+    assert_eq!(
+        uses[0].import.import.source, "./index.astro",
+        "the import that reached the component"
+    );
+    let incoming = snapshot.incoming_reexports("/v/Card.astro");
+    assert_eq!(incoming.len(), 1);
+    assert_eq!(incoming[0].path, Path::new("/v/index.astro"));
+}
+
+#[test]
+fn reexports_count_as_uses_and_unused_reexports_are_reported() {
+    let lib = "---\nexport const a = 1;\nexport const b = 2;\nexport const c = 3;\n---";
+    let barrel =
+        "---\nexport { a } from './Lib.astro';\nexport { b as renamed } from './Lib.astro';\n---";
+    let page = "---\nimport { a } from './index.astro';\n---\n{a}";
+    let snapshot = analyze_project([
+        ("/v/Lib.astro", lib),
+        ("/v/index.astro", barrel),
+        ("/v/Page.astro", page),
+    ]);
+    let unused: Vec<_> = snapshot
+        .unused_exports()
+        .iter()
+        .map(|e| (e.path.to_str().unwrap(), e.export.name.as_str()))
+        .collect();
+    assert_eq!(
+        unused,
+        [("/v/Lib.astro", "c"), ("/v/index.astro", "renamed")]
+    );
+}
+
+#[test]
+fn star_reexports_use_every_named_export_and_cycles_terminate() {
+    let a = "---\nexport * from './B.astro';\nexport const x = 1;\n---";
+    let b = "---\nexport * from './A.astro';\n---";
+    let snapshot = analyze_project([("/v/A.astro", a), ("/v/B.astro", b)]);
+    assert!(snapshot.unused_exports().is_empty());
+    assert!(snapshot.component_uses_of("/v/A.astro").is_empty());
+}
