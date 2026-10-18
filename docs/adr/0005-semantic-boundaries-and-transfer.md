@@ -160,8 +160,27 @@ IDs, and Unicode/CRLF source recovery. It also checks recursive origin/reference
 renumbering, parser/source independence, cached/retained results, and unchanged
 JSON/report schema with the relevant features enabled.
 
+Regression cases run both transfer methods over the same value tables, check
+alias/container depth limits immediately before and at the limit, and compare
+reason and condition spans to exact source intervals. A fixed-seed grammar
+generates 128 JSON-safe values with maximum depth 4, checking parentheses,
+primitive aliases, LF/CRLF, and unrelated browser scripts against explicit
+fixture values and server declaration identity. Incremental tests retain each
+revision's IDs and constant origins across updates, removal, re-registration,
+and database destruction.
+
+`npm run test:transfer` compares Atlas with the real `stringifyForScript` and
+`serializeProps` implementations from the exact `astro@7.0.6` development
+dependency. A test-only `transfer-dump` example reads Astro source from stdin
+and emits boundary methods, input names, and statuses without extending the
+public serialization contract. Runtime values come from predefined fixture
+factories; analyzed expressions are never evaluated. Expectations cover JSON
+restoration and script escaping, explicit props tags and payloads, negative zero,
+BigInt, and function omission/substitution. Successful runtime serialization of
+const aggregates or call results still requires Atlas to report `Unknown`.
+
 The existing four feature combinations, doctests, Clippy checks, owned-facts
 snapshots, and pinned compiler comparisons continue to apply. Compiler comparisons
 verify the existing syntax/extraction contract; they are not an oracle for the
-new transfer classification. Rules above are checked separately against the
-pinned runtime source and focused Rust assertions.
+new transfer classification. Transfer rules have separate pinned runtime
+comparisons and focused Rust assertions. Both comparison suites run in CI.

@@ -3,9 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test:conformance": "node --test tests/compiler/fixtures.test.mjs && node tests/compiler/conformance.mjs"
+    "test:conformance": "node --test tests/compiler/fixtures.test.mjs && node tests/compiler/conformance.mjs",
+    "test:transfer": "node --test tests/transfer/runtime.test.mjs"
   },
   "devDependencies": {
-    "@astrojs/compiler-rs": "0.3.0"
+    "@astrojs/compiler-rs": "0.3.0",
+    "astro": "7.0.6"
   }
 }
