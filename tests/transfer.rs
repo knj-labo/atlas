@@ -32,6 +32,56 @@ fn prop(expression: &str, declarations: &str) -> FileFacts {
     .unwrap()
 }
 
+const METHODS: [TransferMethod; 2] = [TransferMethod::JsonScript, TransferMethod::AstroProps];
+
+fn handoff(expression: &str, declarations: &str, method: TransferMethod) -> String {
+    let element = match method {
+        TransferMethod::JsonScript => {
+            format!("<script define:vars={{{{ value: {expression} }}}}>value;</script>")
+        }
+        TransferMethod::AstroProps => format!("<View client:load value={{{expression}}} />"),
+    };
+    format!("---\nimport View from './View';\n{declarations}\n---\n{element}")
+}
+
+#[test]
+fn primitive_and_alias_cases_agree_for_both_methods() {
+    let declarations = "const nil = null; const text = '😀'; const yes = true; const number = -12.5; const large = -0xfn; const alias = text; const twice = alias;";
+    let cases = [
+        ("null", V::Null, 0),
+        ("'😀'", V::String("😀".into()), 0),
+        ("`plain`", V::String("plain".into()), 0),
+        ("false", V::Boolean(false), 0),
+        ("+0x10", V::FiniteNumber("16".into()), 0),
+        ("-12.5", V::FiniteNumber("-12.5".into()), 0),
+        ("-0", V::FiniteNumber("-0".into()), 0),
+        ("1_000", V::FiniteNumber("1000".into()), 0),
+        ("nil", V::Null, 1),
+        ("text", V::String("😀".into()), 1),
+        ("yes", V::Boolean(true), 1),
+        ("number", V::FiniteNumber("-12.5".into()), 1),
+        ("twice", V::String("😀".into()), 3),
+        ("large", V::BigInt("-15".into()), 1),
+    ];
+    for method in METHODS {
+        for (expression, expected, origins) in &cases {
+            let source = handoff(expression, declarations, method);
+            let facts = analyze(&source).unwrap();
+            let value = &facts.boundaries[0].inputs[0].value;
+            assert_eq!(&value.kind, expected, "{method:?}: {expression}");
+            assert_eq!(value.origins.len(), *origins, "{expression}");
+            let expected_status = if *expression == "large" && method == TransferMethod::JsonScript
+            {
+                S::Unsupported
+            } else {
+                S::Supported
+            };
+            assert_eq!(statuses(&facts, 0), [expected_status], "{expression}");
+            check_boundaries(&facts, &source);
+        }
+    }
+}
+
 #[test]
 fn literal_values_and_static_containers_have_method_specific_support() {
     let facts = analyze(
@@ -148,14 +198,21 @@ fn insufficient_value_evidence_stays_unknown() {
         ("{ [1e-7]: 1, '1e-7': 2 }", U::DuplicateKey),
         ("/pattern/g", U::UnsupportedExpression),
         ("1 + 2", U::UnsupportedExpression),
+        ("!true", U::UnsupportedExpression),
+        ("+1n", U::UnsupportedExpression),
         ("`dynamic${mutable}`", U::UnsupportedExpression),
         ("Infinity", U::ExternalReference),
         ("NaN", U::ExternalReference),
         ("undefined", U::ExternalReference),
         ("1e400", U::NonFiniteNumber),
+        ("<span />", U::UnsupportedExpression),
+        ("<>text</>", U::UnsupportedExpression),
     ];
-    for (expression, reason) in cases {
-        let facts = prop(expression, declarations);
+    for ((expression, reason), method) in cases
+        .into_iter()
+        .flat_map(|case| METHODS.map(|method| (case, method)))
+    {
+        let facts = analyze(&handoff(expression, declarations, method)).unwrap();
         assert_eq!(statuses(&facts, 0), [S::Unknown], "{expression}");
         assert_eq!(
             facts.boundaries[0].inputs[0].value.kind,
@@ -172,33 +229,148 @@ fn insufficient_value_evidence_stays_unknown() {
         );
     }
     for (expression, reason) in [("[...array]", U::Spread), ("[, 1]", U::ArrayHole)] {
-        let facts = prop(expression, declarations);
-        assert_eq!(statuses(&facts, 0), [S::Unknown]);
-        assert!(
-            facts.assess_transfer(BoundaryId(0)).unwrap().inputs[0]
+        for method in METHODS {
+            let facts = analyze(&handoff(expression, declarations, method)).unwrap();
+            assert_eq!(statuses(&facts, 0), [S::Unknown]);
+            assert!(
+                facts.assess_transfer(BoundaryId(0)).unwrap().inputs[0]
+                    .reasons
+                    .iter()
+                    .any(|r| r.kind == R::UnknownValue(reason))
+            );
+        }
+    }
+}
+
+#[test]
+fn jsx_attribute_values_and_empty_expressions_remain_unknown() {
+    for value in ["<span />", "<>text</>", "{/* empty */}"] {
+        let source = format!(
+            "---\r\nimport View from './View';\r\nconst 注釈 = '😀';\r\n---\r\n<View client:load value={value} />"
+        );
+        let facts = analyze(&source).unwrap();
+        assert_eq!(statuses(&facts, 0), [S::Unknown], "{value}");
+        assert_eq!(
+            facts.boundaries[0].inputs[0].value.kind,
+            V::Unknown(U::UnsupportedExpression)
+        );
+        let result = facts.assess_transfer(BoundaryId(0)).unwrap();
+        assert_eq!(
+            result.inputs[0]
                 .reasons
                 .iter()
-                .any(|r| r.kind == R::UnknownValue(reason))
+                .map(|r| (r.kind, r.span.clone()))
+                .collect::<Vec<_>>(),
+            [(
+                R::UnknownValue(U::UnsupportedExpression),
+                span_in(&source, &format!("value={value}"), value)
+            )]
         );
+        check_boundaries(&facts, &source);
+    }
+}
+
+#[test]
+fn ambient_constants_and_written_constants_never_become_supported() {
+    for (declarations, expected) in [
+        ("declare const value: number;", U::UncertainInitialization),
+        ("const value = 1; value = 2;", U::MutableBinding),
+        ("const value = 1; value++;", U::MutableBinding),
+        ("const value = 1; ({ value } = other);", U::MutableBinding),
+    ] {
+        for method in METHODS {
+            let source = handoff("value", declarations, method);
+            let facts = analyze(&source).unwrap();
+            assert_eq!(statuses(&facts, 0), [S::Unknown], "{declarations}");
+            assert_eq!(
+                facts.boundaries[0].inputs[0].value.kind,
+                V::Unknown(expected)
+            );
+            assert!(facts.boundaries[0].inputs[0].value.origins.is_empty());
+            check_boundaries(&facts, &source);
+        }
+    }
+}
+
+#[test]
+fn accessors_and_prototype_setters_differ_from_computed_data_keys() {
+    let cases = [
+        ("{ get x() { return 1; } }", S::Unknown, Some(U::Accessor)),
+        ("{ set x(value) {} }", S::Unknown, Some(U::Accessor)),
+        ("{ __proto__: null }", S::Unknown, Some(U::NonPlainObject)),
+        ("{ '__proto__': null }", S::Unknown, Some(U::NonPlainObject)),
+        ("{ ['__proto__']: null }", S::Supported, None),
+        ("{ __proto__ }", S::Supported, None),
+        ("{ ['x']: 1, [2]: true }", S::Supported, None),
+    ];
+    for method in METHODS {
+        for (expression, status, reason) in cases {
+            let source = handoff(expression, "const __proto__ = 1;", method);
+            let facts = analyze(&source).unwrap();
+            assert_eq!(statuses(&facts, 0), [status], "{method:?}: {expression}");
+            if let Some(reason) = reason {
+                assert_eq!(facts.boundaries[0].inputs[0].value.kind, V::Unknown(reason));
+            }
+            check_boundaries(&facts, &source);
+        }
+    }
+    // These are properties of the injection object itself, rather than nested values.
+    for (property, expected) in [
+        ("get value() { return 1; }", V::Unknown(U::Accessor)),
+        ("set value(next) {}", V::Unknown(U::Accessor)),
+        ("__proto__: null", V::Unknown(U::NonPlainObject)),
+        ("'__proto__': null", V::Unknown(U::NonPlainObject)),
+        ("['__proto__']: null", V::Null),
+        ("__proto__", V::FiniteNumber("1".into())),
+        ("value() {}", V::Function),
+    ] {
+        let source = format!(
+            "---\nconst __proto__ = 1;\n---\n<script define:vars={{{{ {property} }}}}></script>"
+        );
+        let facts = analyze(&source).unwrap();
+        assert_eq!(facts.boundaries[0].inputs.len(), 1);
+        assert_eq!(
+            facts.boundaries[0].inputs[0].value.kind, expected,
+            "{property}"
+        );
+        let status = match expected {
+            V::Unknown(_) => S::Unknown,
+            V::Function => S::Unsupported,
+            _ => S::Supported,
+        };
+        assert_eq!(statuses(&facts, 0), [status], "{property}");
+        check_boundaries(&facts, &source);
     }
 }
 
 #[test]
 fn imported_values_and_calls_are_not_followed_as_constants() {
-    let facts = prop("remote", "import { remote } from './values';");
-    assert_eq!(statuses(&facts, 0), [S::Unknown]);
-    assert_eq!(
-        facts.boundaries[0].inputs[0].value.kind,
-        V::Unknown(U::ExternalReference)
-    );
-    for initializer in ["getValue()", "Object.freeze({ a: 1 })", "new Map()"] {
-        let facts = prop("value", &format!("const value = {initializer};"));
+    for method in METHODS {
+        let facts = analyze(&handoff(
+            "remote",
+            "import { remote } from './values';",
+            method,
+        ))
+        .unwrap();
         assert_eq!(statuses(&facts, 0), [S::Unknown]);
         assert_eq!(
             facts.boundaries[0].inputs[0].value.kind,
-            V::Unknown(U::CallResult)
+            V::Unknown(U::ExternalReference)
         );
-        assert_eq!(facts.boundaries[0].inputs[0].value.origins.len(), 1);
+        for initializer in ["getValue()", "Object.freeze({ a: 1 })", "new Map()"] {
+            let facts = analyze(&handoff(
+                "value",
+                &format!("const value = {initializer};"),
+                method,
+            ))
+            .unwrap();
+            assert_eq!(statuses(&facts, 0), [S::Unknown]);
+            assert_eq!(
+                facts.boundaries[0].inputs[0].value.kind,
+                V::Unknown(U::CallResult)
+            );
+            assert_eq!(facts.boundaries[0].inputs[0].value.origins.len(), 1);
+        }
     }
 }
 
@@ -252,45 +424,343 @@ const same = base;
 
 #[test]
 fn cyclic_aliases_forward_initialization_and_analysis_limits_are_unknown() {
-    for declarations in ["const a = b; const b = a;", "const a = a;"] {
-        let facts = prop("a", declarations);
-        assert_eq!(statuses(&facts, 0), [S::Unknown]);
+    for method in METHODS {
+        for declarations in ["const a = b; const b = a;", "const a = a;"] {
+            let facts = analyze(&handoff("a", declarations, method)).unwrap();
+            assert_eq!(statuses(&facts, 0), [S::Unknown]);
+            assert_eq!(
+                facts.boundaries[0].inputs[0].value.kind,
+                V::Unknown(U::CyclicAlias)
+            );
+        }
+        let forward = analyze(&handoff("a", "const a = b; const b = 1;", method)).unwrap();
+        assert_eq!(statuses(&forward, 0), [S::Unknown]);
         assert_eq!(
-            facts.boundaries[0].inputs[0].value.kind,
-            V::Unknown(U::CyclicAlias)
+            forward.boundaries[0].inputs[0].value.kind,
+            V::Unknown(U::UncertainInitialization)
+        );
+        let mut declarations = String::from("const c0 = 1;\n");
+        for index in 1..140 {
+            declarations.push_str(&format!("const c{index} = c{};\n", index - 1));
+        }
+        let limited = analyze(&handoff("c139", &declarations, method)).unwrap();
+        assert_eq!(statuses(&limited, 0), [S::Unknown]);
+        assert_eq!(
+            limited.boundaries[0].inputs[0].value.kind,
+            V::Unknown(U::AnalysisLimit)
         );
     }
-    let forward = prop("a", "const a = b; const b = 1;");
-    assert_eq!(statuses(&forward, 0), [S::Unknown]);
-    assert_eq!(
-        forward.boundaries[0].inputs[0].value.kind,
-        V::Unknown(U::UncertainInitialization)
-    );
+}
+
+#[test]
+fn alias_and_container_depth_limits_have_exact_edges() {
     let mut declarations = String::from("const c0 = 1;\n");
-    for index in 1..140 {
+    for index in 1..128 {
         declarations.push_str(&format!("const c{index} = c{};\n", index - 1));
     }
-    let limited = prop("c139", &declarations);
-    assert_eq!(statuses(&limited, 0), [S::Unknown]);
-    assert_eq!(
-        limited.boundaries[0].inputs[0].value.kind,
-        V::Unknown(U::AnalysisLimit)
-    );
+    for method in METHODS {
+        for (name, status, expected, origins) in [
+            ("c126", S::Supported, V::FiniteNumber("1".into()), 127),
+            ("c127", S::Unknown, V::Unknown(U::AnalysisLimit), 128),
+        ] {
+            let source = handoff(name, &declarations, method);
+            let facts = analyze(&source).unwrap();
+            assert_eq!(statuses(&facts, 0), [status], "{method:?}: {name}");
+            let value = &facts.boundaries[0].inputs[0].value;
+            assert_eq!(value.kind, expected);
+            assert_eq!(value.origins.len(), origins);
+            for (index, origin) in value.origins.iter().enumerate() {
+                assert_eq!(
+                    facts.declarations[origin.declaration.0].name,
+                    format!("c{}", origins - index - 1)
+                );
+            }
+            check_boundaries(&facts, &source);
+        }
+        for object in [false, true] {
+            for (leaf, depth, status) in [
+                ("1", 127, S::Supported),
+                ("1", 128, S::Unknown),
+                ("c0", 126, S::Supported),
+                ("c0", 127, S::Unknown),
+            ] {
+                let expression = if object {
+                    format!("{}{}{}", "{ x: ".repeat(depth), leaf, " }".repeat(depth))
+                } else {
+                    format!("{}{}{}", "[".repeat(depth), leaf, "]".repeat(depth))
+                };
+                let source = handoff(&expression, "const c0 = 1;", method);
+                let facts = analyze(&source).unwrap();
+                assert_eq!(
+                    statuses(&facts, 0),
+                    [status],
+                    "{method:?}: object={object}, {leaf}, depth={depth}"
+                );
+                let assessment = facts.assess_transfer(BoundaryId(0)).unwrap();
+                assert_eq!(
+                    assessment.inputs[0]
+                        .reasons
+                        .iter()
+                        .filter(|r| r.kind == R::UnknownValue(U::AnalysisLimit))
+                        .count(),
+                    usize::from(status == S::Unknown)
+                );
+                let mut value = &facts.boundaries[0].inputs[0].value;
+                for _ in 0..depth {
+                    value = match &value.kind {
+                        V::Array(values) => &values[0],
+                        V::Object(properties) => &properties[0].1,
+                        other => panic!("expected container, got {other:?}"),
+                    };
+                }
+                assert_eq!(
+                    value.kind,
+                    if status == S::Unknown {
+                        V::Unknown(U::AnalysisLimit)
+                    } else {
+                        V::FiniteNumber("1".into())
+                    }
+                );
+                check_boundaries(&facts, &source);
+            }
+        }
+    }
+}
+
+#[test]
+fn unsupported_members_dominate_unknown_members_in_either_order() {
+    for (expression, json, props) in [
+        ("[missing, () => 1]", S::Unsupported, S::Unsupported),
+        ("[() => 1, missing]", S::Unsupported, S::Unsupported),
+        (
+            "{ uncertain: missing, bad: [() => 1] }",
+            S::Unsupported,
+            S::Unsupported,
+        ),
+        (
+            "{ bad: [() => 1], uncertain: missing }",
+            S::Unsupported,
+            S::Unsupported,
+        ),
+        ("[missing, 1n]", S::Unsupported, S::Unknown),
+        ("[1n, missing]", S::Unsupported, S::Unknown),
+        ("[missing, [other]]", S::Unknown, S::Unknown),
+        ("{ a: missing, b: [1] }", S::Unknown, S::Unknown),
+    ] {
+        for (method, expected) in [
+            (TransferMethod::JsonScript, json),
+            (TransferMethod::AstroProps, props),
+        ] {
+            let source = handoff(expression, "", method);
+            let facts = analyze(&source).unwrap();
+            assert_eq!(statuses(&facts, 0), [expected], "{method:?}: {expression}");
+            check_boundaries(&facts, &source);
+        }
+    }
+}
+
+// A fixture grammar of JSON-safe values, independent of the transfer rules.
+#[derive(Debug)]
+enum StaticValue {
+    Null,
+    Text,
+    Boolean(bool),
+    Number(i32),
+    Alias,
+    Array(Vec<Self>),
+    Object(Vec<(String, Self)>),
+}
+
+impl StaticValue {
+    fn generate(seed: &mut u32, depth: usize) -> Self {
+        *seed = seed.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
+        let choice = (*seed >> 16) % if depth == 0 { 5 } else { 7 };
+        match choice {
+            0 => Self::Null,
+            1 => Self::Text,
+            2 => Self::Boolean(*seed & 1 == 0),
+            3 => Self::Number((*seed % 2001) as i32 - 1000),
+            4 => Self::Alias,
+            5 => Self::Array((0..2).map(|_| Self::generate(seed, depth - 1)).collect()),
+            _ => Self::Object(
+                (0..2)
+                    .map(|i| (format!("k{i}"), Self::generate(seed, depth - 1)))
+                    .collect(),
+            ),
+        }
+    }
+
+    fn render(&self, parentheses: bool, aliases: bool) -> String {
+        let expression = match self {
+            Self::Null => "null".into(),
+            Self::Text => "'日本語😀</script>'".into(),
+            Self::Boolean(value) => value.to_string(),
+            Self::Number(value) => value.to_string(),
+            Self::Alias if aliases => "alias".into(),
+            Self::Alias => "'😀'".into(),
+            Self::Array(values) => format!(
+                "[{}]",
+                values
+                    .iter()
+                    .map(|v| v.render(parentheses, aliases))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            Self::Object(properties) => format!(
+                "{{ {} }}",
+                properties
+                    .iter()
+                    .map(|(k, v)| format!("{k}: {}", v.render(parentheses, aliases)))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+        };
+        if parentheses {
+            format!("({expression})")
+        } else {
+            expression
+        }
+    }
+
+    fn check(
+        &self,
+        value: &TransferValue,
+        facts: &FileFacts,
+        source: &str,
+        parentheses: bool,
+        aliases: bool,
+    ) {
+        assert_eq!(value.source.raw, self.render(parentheses, aliases));
+        if matches!(self, Self::Alias) && aliases {
+            assert_eq!(value.origins.len(), 2);
+            for (origin, name, initializer) in [
+                (&value.origins[0], "alias", "base"),
+                (&value.origins[1], "base", "'😀'"),
+            ] {
+                let binding = &facts.declarations[origin.declaration.0];
+                assert_eq!(binding.name, name);
+                assert_eq!(
+                    binding.span,
+                    span_in(source, &format!("const {name} = {initializer};"), name)
+                );
+                assert_eq!(facts.scopes[binding.scope.0].domain, ScopeDomain::Server);
+                assert_eq!(
+                    origin.initializer.span,
+                    span_in(
+                        source,
+                        &format!("const {name} = {initializer};"),
+                        initializer
+                    )
+                );
+            }
+            let alias_position =
+                value.source.span.start + value.source.raw.find("alias").unwrap() as u32;
+            assert_eq!(
+                value.origins[0].reference,
+                facts.reference_at(alias_position).unwrap().id
+            );
+            assert_eq!(
+                facts.references[value.origins[1].reference.0].span,
+                span_in(source, "const alias = base;", "base")
+            );
+        } else {
+            assert!(value.origins.is_empty());
+        }
+        match (self, &value.kind) {
+            (Self::Null, V::Null) => {}
+            (Self::Text, V::String(s)) => assert_eq!(s, "日本語😀</script>"),
+            (Self::Alias, V::String(s)) => assert_eq!(s, "😀"),
+            (Self::Boolean(expected), V::Boolean(actual)) => assert_eq!(actual, expected),
+            (Self::Number(expected), V::FiniteNumber(actual)) => {
+                assert_eq!(actual, &expected.to_string())
+            }
+            (Self::Array(expected), V::Array(actual)) => {
+                assert_eq!(actual.len(), expected.len());
+                for (expected, actual) in expected.iter().zip(actual) {
+                    expected.check(actual, facts, source, parentheses, aliases);
+                }
+            }
+            (Self::Object(expected), V::Object(actual)) => {
+                assert_eq!(actual.len(), expected.len());
+                for ((expected_key, expected), (actual_key, actual)) in expected.iter().zip(actual)
+                {
+                    assert_eq!(actual_key, expected_key);
+                    expected.check(actual, facts, source, parentheses, aliases);
+                }
+            }
+            _ => panic!("fixture {self:?} does not match {:?}", value.kind),
+        }
+    }
+}
+
+#[test]
+fn seeded_static_values_preserve_support_and_declaration_identity() {
+    let mut seed = 0x51a7_c0de;
+    let declarations = "const base = '😀';\nconst alias = base;";
+    let scripts = "<script>const alias = 'browser'; alias;</script>\n<script is:inline>const base = false; base;</script>\n";
+    for case in 0..128 {
+        // The outer object guarantees an alias leaf, with maximum leaf depth 4.
+        let expected = StaticValue::Object(vec![
+            ("generated".into(), StaticValue::generate(&mut seed, 3)),
+            ("marker".into(), StaticValue::Alias),
+        ]);
+        for (parentheses, aliases, newline, extra) in [
+            (false, false, "\n", ""),
+            (true, false, "\n", ""),
+            (false, true, "\n", ""),
+            (false, true, "\r\n", ""),
+            (true, true, "\r\n", scripts),
+        ] {
+            for method in METHODS {
+                let expression = expected.render(parentheses, aliases);
+                let source = handoff(&expression, declarations, method)
+                    .replace("---\n<", &format!("---\n{extra}<"))
+                    .replace('\n', newline);
+                let facts = analyze(&source).unwrap();
+                assert_eq!(facts.boundaries.len(), 1, "case {case}: {source}");
+                assert_eq!(
+                    statuses(&facts, 0),
+                    [S::Supported],
+                    "case {case}: {method:?}: {source}"
+                );
+                expected.check(
+                    &facts.boundaries[0].inputs[0].value,
+                    &facts,
+                    &source,
+                    parentheses,
+                    aliases,
+                );
+                check_boundaries(&facts, &source);
+            }
+        }
+    }
+}
+
+fn span_in(source: &str, context: &str, text: &str) -> std::ops::Range<u32> {
+    let start = source.find(context).expect(context) + context.find(text).expect(text);
+    start as u32..(start + text.len()) as u32
 }
 
 #[test]
 fn unknown_members_keep_static_aggregates_unknown() {
-    for expression in [
-        "[1, missing]",
-        "{ known: [1], uncertain: missing }",
-        "[{ a: 1 }, [...missing]]",
-    ] {
-        let facts = prop(expression, "");
+    for method in METHODS {
+        for expression in [
+            "[1, missing]",
+            "{ known: [1], uncertain: missing }",
+            "[{ a: 1 }, [...missing]]",
+        ] {
+            let facts = analyze(&handoff(expression, "", method)).unwrap();
+            assert_eq!(statuses(&facts, 0), [S::Unknown]);
+        }
+        // A const aggregate is mutable through its properties, even inside a fresh literal.
+        let facts = analyze(&handoff(
+            "[object]",
+            "const object = { a: 1 }; object.a = () => 1;",
+            method,
+        ))
+        .unwrap();
         assert_eq!(statuses(&facts, 0), [S::Unknown]);
     }
-    // A const aggregate is mutable through its properties, even inside a fresh literal.
-    let facts = prop("[object]", "const object = { a: 1 }; object.a = () => 1;");
-    assert_eq!(statuses(&facts, 0), [S::Unknown]);
 }
 
 #[test]
@@ -507,6 +977,168 @@ fn unicode_crlf_raw_text_nested_origins_and_reference_ids_survive_parser_release
 }
 
 #[test]
+fn reason_spans_identify_exact_nested_values_and_constant_initializers() {
+    let expression = "[alias, { bad: () => 1, uncertain: missing }]";
+    let declarations = "const 注釈 = '😀';\nconst base = 1n;\nconst alias = base;";
+    for method in METHODS {
+        let source = handoff(expression, declarations, method).replace('\n', "\r\n");
+        let facts = analyze(&source).unwrap();
+        let result = facts.assess_transfer(BoundaryId(0)).unwrap();
+        let range = |text| span_in(&source, expression, text);
+        let expected = vec![
+            (R::StaticArray, range(expression)),
+            (
+                if method == TransferMethod::JsonScript {
+                    R::BigIntInJson
+                } else {
+                    R::BigIntEncoding
+                },
+                range("alias"),
+            ),
+            (
+                R::ConstantInitializer,
+                span_in(&source, "const alias = base;", "base"),
+            ),
+            (
+                R::ConstantInitializer,
+                span_in(&source, "const base = 1n;", "1n"),
+            ),
+            (
+                R::PlainObject,
+                range("{ bad: () => 1, uncertain: missing }"),
+            ),
+            (R::FunctionValue, range("() => 1")),
+            (R::UnknownValue(U::ExternalReference), range("missing")),
+        ];
+        assert_eq!(result.inputs[0].status, S::Unsupported);
+        assert_eq!(
+            result.inputs[0]
+                .reasons
+                .iter()
+                .map(|r| (r.kind, r.span.clone()))
+                .collect::<Vec<_>>(),
+            expected
+        );
+        let input = &facts.boundaries[0].inputs[0];
+        assert_eq!(
+            input
+                .references
+                .iter()
+                .map(|id| facts.references[id.0].span.clone())
+                .collect::<Vec<_>>(),
+            [range("alias"), range("missing")]
+        );
+        let V::Array(items) = &input.value.kind else {
+            panic!("array")
+        };
+        for (origin, name, reference) in [
+            (&items[0].origins[0], "alias", range("alias")),
+            (
+                &items[0].origins[1],
+                "base",
+                span_in(&source, "const alias = base;", "base"),
+            ),
+        ] {
+            assert_eq!(facts.declarations[origin.declaration.0].name, name);
+            assert_eq!(facts.references[origin.reference.0].span, reference);
+        }
+        check_boundaries(&facts, &source);
+    }
+}
+
+#[test]
+fn condition_spans_identify_exact_directives_attributes_and_input_keys() {
+    use atlas::ValidationStatus;
+    let cases = [
+        (
+            "<View client:media={23} client:load x={1} x={2} {...others} />",
+            vec![
+                (
+                    C::DirectiveValidation(ValidationStatus::Invalid),
+                    "client:media={23}",
+                    "client:media={23}",
+                ),
+                (
+                    C::DirectiveValidation(ValidationStatus::RequiresProjectContext),
+                    "client:load",
+                    "client:load",
+                ),
+                (
+                    C::DuplicateDirective,
+                    "<View client:media={23} client:load x={1} x={2} {...others} />",
+                    "<View client:media={23} client:load x={1} x={2} {...others} />",
+                ),
+                (C::DuplicateInput("x".into()), "x={2}", "x"),
+                (C::DynamicInputSet, "{...others}", "{...others}"),
+            ],
+        ),
+        (
+            "<script define:vars={1}></script>",
+            vec![
+                (
+                    C::DirectiveValidation(ValidationStatus::Invalid),
+                    "define:vars={1}",
+                    "define:vars={1}",
+                ),
+                (C::DynamicInputSet, "{1}", "{1}"),
+            ],
+        ),
+        (
+            "<script define:vars={{ a: 1 }} type=\"application/json\">raw</script>",
+            vec![(
+                C::UnanalyzedScript(ScriptMode::Data),
+                "<script define:vars={{ a: 1 }} type=\"application/json\">raw</script>",
+                "<script define:vars={{ a: 1 }} type=\"application/json\">raw</script>",
+            )],
+        ),
+        (
+            "<script define:vars={{ a: 1 }} {...other} type=\"text/javascript\" type=\"module\">a;</script>",
+            vec![
+                (C::UncertainScriptAttributes, "{...other}", "{...other}"),
+                (
+                    C::UncertainScriptAttributes,
+                    "type=\"module\"",
+                    "type=\"module\"",
+                ),
+            ],
+        ),
+        (
+            "<script define:vars={{ '123key': 1 }}></script>",
+            vec![(C::InvalidInjectedName, "'123key'", "'123key'")],
+        ),
+    ];
+    for (element, expected) in cases {
+        let source =
+            format!("---\r\nimport View from './View';\r\nconst 注釈 = '😀';\r\n---\r\n{element}");
+        let facts = analyze(&source).unwrap();
+        let result = facts.assess_transfer(BoundaryId(0)).unwrap();
+        let opening = &element[..=element.find('>').unwrap()];
+        let opening_span = span_in(&source, element, opening);
+        let mut expected: Vec<_> = expected
+            .into_iter()
+            .map(|(kind, context, text)| (kind, span_in(&source, context, text)))
+            .collect();
+        if element.starts_with("<View") {
+            expected.push((C::RendererAvailability, opening_span.clone()));
+        }
+        expected.extend([
+            (C::DataDisclosure, opening_span.clone()),
+            (C::CodeMovementSafety, opening_span),
+        ]);
+        assert_eq!(
+            result
+                .assumptions
+                .iter()
+                .map(|c| (c.kind.clone(), c.span.clone()))
+                .collect::<Vec<_>>(),
+            expected,
+            "{element}"
+        );
+        check_boundaries(&facts, &source);
+    }
+}
+
+#[test]
 fn invalid_boundary_ids_return_none_and_queries_are_read_only() {
     for facts in [FileFacts::default(), analyze("").unwrap(), prop("1", "")] {
         let before = facts.clone();
@@ -620,28 +1252,91 @@ fn rust_only_boundary_facts_leave_existing_json_and_report_schema_unchanged() {
 
 #[cfg(feature = "incremental")]
 #[test]
-fn cached_and_retained_assessments_keep_their_owned_values_after_updates() {
+fn cached_and_retained_assessments_keep_ids_and_origins_after_update_remove_and_readd() {
     use std::sync::Arc;
-    let source = "---\r\nconst 名前 = '😀';\r\nconst alias = 名前;\r\n---\r\n<script define:vars={{ text: alias }}></script>";
-    let updated_source = "<script define:vars={{ text: 1n }}></script>";
-    let (first, updated, assessment) = {
-        let mut db = atlas::AnalysisDatabase::new();
-        db.set_source("Page.astro", source);
-        let first = db.analyze_file("Page.astro").unwrap();
-        assert!(Arc::ptr_eq(&first, &db.analyze_file("Page.astro").unwrap()));
-        let facts = first.as_ref().as_ref().unwrap();
+    let sources = [
+        "---\r\nconst 名前 = '😀';\r\nconst alias = 名前;\r\n---\r\n<script define:vars={{ text: alias }}>text;</script>",
+        "---\r\nconst unused = 0;\r\nconst 名前 = 1n;\r\nconst alias = 名前;\r\n---\r\n<script>const alias = false; alias;</script>\r\n<script define:vars={{ pre: 0 }}>pre;</script>\r\n<script define:vars={{ text: alias }}>text;</script>",
+        "---\r\nconst unused = 0;\r\nconst another = 1;\r\nconst 名前 = true;\r\nconst alias = 名前;\r\n---\r\n<script define:vars={{ pre: 0 }}>pre;</script>\r\n<script define:vars={{ next: 1 }}>next;</script>\r\n<script define:vars={{ text: alias }}>text;</script>",
+    ];
+    let mut db = atlas::AnalysisDatabase::new();
+    let mut retained = Vec::new();
+    for (index, source) in sources.iter().enumerate() {
+        if index == 2 {
+            assert!(db.remove_file("Page.astro"));
+            assert!(db.analyze_file("Page.astro").is_none());
+        }
+        db.set_source("Page.astro", *source);
+        let current = db.analyze_file("Page.astro").unwrap();
+        assert!(Arc::ptr_eq(
+            &current,
+            &db.analyze_file("Page.astro").unwrap()
+        ));
+        let facts = current.as_ref().as_ref().unwrap();
+        // Each revision inserts a preceding boundary; obtain the target ID anew.
+        let boundary = facts
+            .boundaries
+            .iter()
+            .find(|b| b.inputs[0].name.as_deref() == Some("text"))
+            .unwrap();
+        assert_eq!(boundary.id, BoundaryId(index));
+        let assessment = facts.assess_transfer(boundary.id).unwrap();
+        retained.push((current, assessment));
+    }
+    drop(db);
+    for (index, ((result, assessment), source)) in retained.iter().zip(sources).enumerate() {
+        let facts = result.as_ref().as_ref().unwrap();
+        assert_eq!(facts, &analyze(source).unwrap());
+        assert_eq!(
+            &facts.assess_transfer(assessment.boundary).unwrap(),
+            assessment
+        );
+        let boundary = &facts.boundaries[assessment.boundary.0];
+        let value = &boundary.inputs[0].value;
+        let (initializer, expected, status) = match index {
+            0 => ("'😀'", V::String("😀".into()), S::Supported),
+            1 => ("1n", V::BigInt("1".into()), S::Unsupported),
+            _ => ("true", V::Boolean(true), S::Supported),
+        };
+        assert_eq!(assessment.inputs[0].status, status);
+        assert_eq!(value.kind, expected);
+        assert_eq!(value.origins.len(), 2);
+        assert_eq!(boundary.inputs[0].references, [value.origins[0].reference]);
+        assert_eq!(
+            facts.references[value.origins[0].reference.0].span,
+            span_in(source, "text: alias", "alias")
+        );
+        assert_eq!(
+            facts.references[value.origins[1].reference.0].span,
+            span_in(source, "const alias = 名前;", "名前")
+        );
+        for (origin, name, init) in [
+            (&value.origins[0], "alias", "名前"),
+            (&value.origins[1], "名前", initializer),
+        ] {
+            let declaration = &facts.declarations[origin.declaration.0];
+            let context = format!("const {name} = {init};");
+            assert_eq!(declaration.span, span_in(source, &context, name));
+            assert_eq!(origin.initializer.span, span_in(source, &context, init));
+        }
         check_boundaries(facts, source);
-        let assessment = facts.assess_transfer(BoundaryId(0)).unwrap();
-        assert_eq!(assessment.inputs[0].status, S::Supported);
-        db.set_source("Page.astro", updated_source);
-        let updated = db.analyze_file("Page.astro").unwrap();
-        assert!(!Arc::ptr_eq(&first, &updated));
-        (first, updated, assessment)
-    };
-    let facts = first.as_ref().as_ref().unwrap();
-    assert_eq!(facts.assess_transfer(BoundaryId(0)).unwrap(), assessment);
-    let updated = updated.as_ref().as_ref().unwrap();
-    assert_eq!(updated, &analyze(updated_source).unwrap());
-    assert_eq!(statuses(updated, 0), [S::Unsupported]);
-    check_boundaries(facts, source);
+    }
+    for pair in retained.windows(2) {
+        assert!(!Arc::ptr_eq(&pair[0].0, &pair[1].0));
+        let previous = pair[0].0.as_ref().as_ref().unwrap();
+        let current = pair[1].0.as_ref().as_ref().unwrap();
+        let old_origin = &previous.boundaries[pair[0].1.boundary.0].inputs[0]
+            .value
+            .origins[0];
+        let new_origin = &current.boundaries[pair[1].1.boundary.0].inputs[0]
+            .value
+            .origins[0];
+        assert_ne!(old_origin.declaration, new_origin.declaration);
+        // The numeric reference ID may be reused in another result. Its source
+        // evidence must still belong to that result's revision.
+        assert_ne!(
+            previous.references[old_origin.reference.0].span,
+            current.references[new_origin.reference.0].span
+        );
+    }
 }

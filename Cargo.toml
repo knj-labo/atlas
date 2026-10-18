@@ -36,6 +36,10 @@ path = "tests/bin/spec_dump.rs"
 required-features = ["serde"]
 
 [[example]]
+name = "transfer-dump"
+path = "tests/bin/transfer_dump.rs"
+
+[[example]]
 name = "atlas-report"
 path = "examples/atlas_report.rs"
 required-features = ["serde"]
