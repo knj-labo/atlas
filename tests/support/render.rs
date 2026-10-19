@@ -68,6 +68,9 @@ fn normalize(value: &mut Value, compact: bool) {
                     }
                 }
             }
+            // Dev dependencies may enable serde_json/preserve_order.
+            // Keep the established snapshot order independent of feature unification.
+            fields.sort_keys();
         }
         _ => {}
     }

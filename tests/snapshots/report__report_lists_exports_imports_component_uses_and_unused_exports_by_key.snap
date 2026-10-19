@@ -28,6 +28,7 @@ expression: "serde_json::to_string_pretty(&report).unwrap()"
         }
       ],
       "imports": [],
+      "references": [],
       "component_uses": [
         {
           "key": "/v/Page.astro#41-97",
@@ -55,6 +56,20 @@ expression: "serde_json::to_string_pretty(&report).unwrap()"
           "domain": "Server",
           "resolution": {
             "Resolved": "/v/Card.astro"
+          }
+        }
+      ],
+      "references": [
+        {
+          "key": "/v/Page.astro#42-46",
+          "name": "Card",
+          "kind": "Value",
+          "import": "/v/Page.astro#4-36",
+          "definition": {
+            "Resolved": {
+              "key": "/v/Card.astro#0-85",
+              "kind": "AstroComponent"
+            }
           }
         }
       ],

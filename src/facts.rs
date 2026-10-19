@@ -197,6 +197,8 @@ pub struct Scope {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(any(feature = "serde", test), derive(serde::Serialize))]
 pub enum ScopeDomain {
+    /// An external ESM source; its runtime environment is unspecified.
+    Module,
     Server,
     BrowserModule,
     BrowserClassic,
@@ -271,14 +273,14 @@ pub enum DeclarationKind {
     Injected,
     Other,
 }
-/// An explicit frontmatter export. The component itself is the implicit
-/// default export of every `.astro` file and is not listed.
+/// An explicit module or frontmatter export. The implicit Astro default
+/// component and exports inside browser scripts are not listed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(any(feature = "serde", test), derive(serde::Serialize))]
 pub struct Export {
     pub name: String,
     pub span: Range<u32>,
-    /// The local declaration; `None` for re-exports.
+    /// The local declaration; `None` for re-exports and anonymous defaults.
     pub local: Option<DeclarationId>,
     /// The module specifier of a re-export.
     pub source: Option<String>,
@@ -287,6 +289,11 @@ pub struct Export {
     pub imported: Option<ImportSpecifier>,
     pub type_only: bool,
     pub role: ExportRole,
+}
+impl Export {
+    pub(crate) fn is_star(&self) -> bool {
+        self.name == "*" && self.source.is_some() && self.imported.is_none()
+    }
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(any(feature = "serde", test), derive(serde::Serialize))]
@@ -497,8 +504,8 @@ pub struct AnalysisError {
 impl fmt::Display for AnalysisError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.diagnostics.first() {
-            Some(d) => write!(f, "Astro analysis failed: {}", d.message),
-            None => f.write_str("Astro analysis failed"),
+            Some(d) => write!(f, "Source analysis failed: {}", d.message),
+            None => f.write_str("Source analysis failed"),
         }
     }
 }

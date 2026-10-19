@@ -1,7 +1,8 @@
 use crate::{
     AnalysisError, ComponentUse, DeclarationId, DeclarationKind, Element, Export, ExportRole,
     FileFacts, Import, ImportSpecifier, ModuleRequest, ModuleResolution, ModuleResolver,
-    ProjectSources, Reference, ReferenceId, RelativeResolver, Resolution, ScopeDomain, analyze,
+    ProjectSources, Reference, ReferenceId, RelativeResolver, Resolution, ScopeDomain,
+    analyze_file,
 };
 use std::{
     collections::{BTreeMap, HashMap},
@@ -9,7 +10,11 @@ use std::{
     sync::Arc,
 };
 
-/// Analyze Astro sources and index their direct imports without a cache.
+#[path = "definition.rs"]
+mod definition;
+pub use definition::{Definition, DefinitionKind, DefinitionResolution, DefinitionUnresolved};
+
+/// Analyze Astro/ESM sources and index their imports without a cache.
 ///
 /// Available with default features. Each call analyzes all supplied files and
 /// resolves imports using [`RelativeResolver`]. The returned snapshot owns its
@@ -34,7 +39,7 @@ where
     analyze_project_with_resolver(sources, &RelativeResolver)
 }
 
-/// Analyze Astro sources without a cache, using a caller-supplied resolver.
+/// Analyze Astro/ESM sources without a cache, using a caller-supplied resolver.
 ///
 /// The input, ownership, and error contracts match [`analyze_project`]. The
 /// resolver is borrowed only during this call and is not retained in the
@@ -55,7 +60,7 @@ where
     let files = unique_sources
         .into_iter()
         .map(|(path, source)| {
-            let analysis = Arc::new(analyze(&source));
+            let analysis = Arc::new(analyze_file(&path, &source));
             (path, ProjectFile { source, analysis })
         })
         .collect();
@@ -363,11 +368,12 @@ impl ProjectSnapshot {
     /// Exports with role [`ExportRole::Other`] that no resolved import or
     /// re-export names.
     ///
-    /// A namespace import, `export * as`, or `export *` of the file counts as
-    /// using every named export. A re-export counts as a use of its target; the
+    /// Namespace imports and `export * as` use every export. `export *` uses
+    /// named exports but excludes `default`. Default imports use only `default`.
+    /// A re-export counts as a use of its target; the
     /// re-exporting entry is itself reported when nothing uses it. Astro and
     /// Props exports are read by Astro itself, and `export *` entries have no
-    /// name, so neither is reported. Unresolved modules and non-`.astro`
+    /// name, so neither is reported. Unresolved modules and unregistered
     /// consumers are not seen, so callers should treat results as candidates.
     pub fn unused_exports(&self) -> Vec<ProjectExport<'_>> {
         let mut unused = Vec::new();
@@ -380,7 +386,7 @@ impl ProjectSnapshot {
             let names = |specifier: &ImportSpecifier, name: &str| match specifier {
                 ImportSpecifier::Namespace => true,
                 ImportSpecifier::Named(imported) => imported == name,
-                ImportSpecifier::Default => false,
+                ImportSpecifier::Default => name == "default",
             };
             let used = |name: &str| {
                 imports
@@ -389,7 +395,7 @@ impl ProjectSnapshot {
                     .any(|binding| names(&binding.target.specifier, name))
                     || reexports.iter().any(|r| match &r.export.imported {
                         Some(imported) => names(imported, name),
-                        None => true,
+                        None => name != "default",
                     })
             };
             unused.extend(
@@ -397,9 +403,7 @@ impl ProjectSnapshot {
                     .exports
                     .iter()
                     .filter(|export| {
-                        export.role == ExportRole::Other
-                            && export.name != "*"
-                            && !used(&export.name)
+                        export.role == ExportRole::Other && !export.is_star() && !used(&export.name)
                     })
                     .map(|export| ProjectExport { path, export }),
             );
@@ -562,14 +566,20 @@ impl ProjectSnapshot {
                 let Some(source) = &export.source else {
                     continue;
                 };
-                // Resolvers receive re-exports as binding-free server imports.
+                // Re-exports use their actual module/frontmatter domain.
                 let request = Import {
                     span: export.span.clone(),
                     source: source.clone(),
                     source_span: export.span.clone(),
                     bindings: Vec::new(),
                 };
-                let resolution = resolve(path, &request, ScopeDomain::Server);
+                let domain = facts
+                    .scopes
+                    .iter()
+                    .find(|s| s.parent.is_none())
+                    .expect("module root scope")
+                    .domain;
+                let resolution = resolve(path, &request, domain);
                 let edge = snapshot.reexports.len();
                 if let ModuleResolution::Resolved(target) = &resolution {
                     snapshot

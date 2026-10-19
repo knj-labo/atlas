@@ -207,6 +207,12 @@ fn resolver_replacement_and_source_changes_refresh_resolution_without_reparsing_
         &updated.file("Missing.astro").unwrap().analysis
     ));
     assert_eq!(a.references_to_file("A.astro").len(), 1);
+    for (snapshot, expected) in [(&a, "A.astro"), (&b, "B.astro")] {
+        let source = &snapshot.file("Page.astro").unwrap().source;
+        assert!(
+            matches!(snapshot.definition_at("Page.astro", source.rfind("Button").unwrap() as u32), Some(atlas::DefinitionResolution::Resolved(d)) if d.path == std::path::Path::new(expected))
+        );
+    }
 }
 
 #[test]
@@ -345,4 +351,103 @@ fn uncached_and_cached_project_queries_match() {
         );
         assert_queries_match(&updated, &db.analyze_project());
     }
+}
+
+#[test]
+fn esm_grammar_and_definitions_invalidate_while_prior_snapshots_keep_ids_and_sources() {
+    use atlas::{DefinitionKind, DefinitionResolution, DefinitionUnresolved};
+    fn target(project: &ProjectSnapshot) -> atlas::Definition<'_> {
+        let source = &project.file("use.ts").unwrap().source;
+        let Some(DefinitionResolution::Resolved(target)) =
+            project.definition_at("use.ts", source.rfind("value").unwrap() as u32)
+        else {
+            panic!("expected resolved use")
+        };
+        target
+    }
+    let source = "import { value } from './barrel.js';     value;";
+    let use_offset = source.rfind("value").unwrap() as u32;
+    let original = "export const value: number = 1;";
+    let mut db = AnalysisDatabase::new();
+    db.set_source("value.ts", original);
+    db.set_source("barrel.js", "export * from './value.ts';");
+    db.set_source("use.ts", source);
+    let old = db.analyze_project();
+    let use_analysis = Arc::clone(&old.file("use.ts").unwrap().analysis);
+    let DefinitionKind::Declaration(binding) = target(&old).kind else {
+        panic!()
+    };
+    let old_id = binding.id;
+    let old_span = binding.span.clone();
+    assert!(Arc::ptr_eq(&old, &db.analyze_project()));
+
+    // Equal text at different paths uses each path's grammar.
+    db.set_source("value.js", original);
+    assert!(db.analyze_file("value.js").unwrap().is_err());
+    assert!(db.analyze_file("value.ts").unwrap().is_ok());
+    db.set_source("value.cts", original);
+    assert_eq!(
+        db.analyze_file("value.cts")
+            .unwrap()
+            .as_ref()
+            .as_ref()
+            .unwrap_err()
+            .diagnostics[0]
+            .code
+            .as_deref(),
+        Some("atlas/unsupported-source-type")
+    );
+
+    db.set_source("value.ts", "const before = 0; export const value = 2;");
+    let updated = db.analyze_project();
+    assert!(Arc::ptr_eq(
+        &use_analysis,
+        &updated.file("use.ts").unwrap().analysis
+    ));
+    assert_ne!(target(&updated).span(), old_span);
+    assert_eq!(target(&old).span(), old_span);
+    assert_eq!(old.file("value.ts").unwrap().source.as_ref(), original);
+
+    db.set_source("value.ts", "export const other = 1;");
+    assert!(matches!(
+        db.analyze_project().definition_at("use.ts", use_offset),
+        Some(DefinitionResolution::Unresolved(
+            DefinitionUnresolved::MissingExport { .. }
+        ))
+    ));
+    assert!(db.remove_file("value.ts"));
+    let removed = db.analyze_project();
+    assert!(matches!(
+        removed.definition_at("use.ts", use_offset),
+        Some(DefinitionResolution::Unresolved(
+            DefinitionUnresolved::UnresolvedModule
+        ))
+    ));
+    db.set_source("value.ts", "const =;");
+    assert!(matches!(
+        db.analyze_project().definition_at("use.ts", use_offset),
+        Some(DefinitionResolution::Unresolved(
+            DefinitionUnresolved::AnalysisFailed { .. }
+        ))
+    ));
+    db.set_source("value.ts", original);
+    let readded = db.analyze_project();
+    assert_eq!(target(&readded).span(), old_span);
+    drop(db);
+    let DefinitionKind::Declaration(retained) = target(&old).kind else {
+        panic!()
+    };
+    assert_eq!(retained.id, old_id);
+    assert_eq!(retained.span, old_span);
+    assert_eq!(
+        updated.file("value.ts").unwrap().source.as_ref(),
+        "const before = 0; export const value = 2;"
+    );
+    assert_eq!(readded.file("value.ts").unwrap().source.as_ref(), original);
+    assert!(matches!(
+        removed.definition_at("use.ts", use_offset),
+        Some(DefinitionResolution::Unresolved(
+            DefinitionUnresolved::UnresolvedModule
+        ))
+    ));
 }

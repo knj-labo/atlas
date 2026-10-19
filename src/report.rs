@@ -1,5 +1,6 @@
 use crate::{
-    Diagnostic, ExportRole, ImportSpecifier, ModuleResolution, ProjectSnapshot, ScopeDomain,
+    Definition, DefinitionKind, DefinitionResolution, DefinitionUnresolved, Diagnostic, ExportRole,
+    ImportSpecifier, ModuleResolution, ProjectSnapshot, ReferenceKind, ScopeDomain,
 };
 use serde::Serialize;
 use std::{ops::Range, path::Path};
@@ -27,6 +28,8 @@ pub struct FileReport {
     pub diagnostics: Vec<Diagnostic>,
     pub exports: Vec<ExportReport>,
     pub imports: Vec<ImportReport>,
+    /// Lexical uses of import bindings, including unresolved module/export targets.
+    pub references: Vec<ReferenceReport>,
     /// Uses of this file's component in other files.
     pub component_uses: Vec<ComponentUseReport>,
 }
@@ -47,6 +50,63 @@ pub struct ImportReport {
     pub source: String,
     pub domain: ScopeDomain,
     pub resolution: ModuleResolution,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ReferenceReport {
+    pub key: String,
+    pub name: String,
+    pub kind: ReferenceKind,
+    /// Key of the originating import declaration.
+    pub import: String,
+    pub definition: DefinitionReport,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub enum DefinitionReport {
+    Resolved(DefinitionTargetReport),
+    Ambiguous(Vec<DefinitionTargetReport>),
+    Unresolved(DefinitionUnresolved),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct DefinitionTargetReport {
+    pub key: String,
+    pub kind: DefinitionTargetKind,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub enum DefinitionTargetKind {
+    Declaration,
+    Export,
+    AstroComponent,
+    Module,
+}
+
+impl From<Definition<'_>> for DefinitionTargetReport {
+    fn from(definition: Definition<'_>) -> Self {
+        Self {
+            key: key(definition.path, &definition.span()),
+            kind: match definition.kind {
+                DefinitionKind::Declaration(_) => DefinitionTargetKind::Declaration,
+                DefinitionKind::Export(_) => DefinitionTargetKind::Export,
+                DefinitionKind::AstroComponent(_) => DefinitionTargetKind::AstroComponent,
+                DefinitionKind::Module(_) => DefinitionTargetKind::Module,
+            },
+        }
+    }
+}
+
+impl From<DefinitionResolution<'_>> for DefinitionReport {
+    fn from(resolution: DefinitionResolution<'_>) -> Self {
+        match resolution {
+            DefinitionResolution::Resolved(target) => Self::Resolved(target.into()),
+            DefinitionResolution::Ambiguous(targets) => {
+                Self::Ambiguous(targets.into_iter().map(Into::into).collect())
+            }
+            DefinitionResolution::Unresolved(reason) => Self::Unresolved(reason),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -101,6 +161,27 @@ impl ProjectSnapshot {
                             source: import.import.source.clone(),
                             domain: import.domain,
                             resolution: import.resolution.clone(),
+                        })
+                        .collect(),
+                    references: file
+                        .analysis
+                        .as_ref()
+                        .as_ref()
+                        .ok()
+                        .into_iter()
+                        .flat_map(|facts| &facts.references)
+                        .filter_map(|reference| {
+                            let import = self.reference_at(path, reference.span.start)?.import?;
+                            Some(ReferenceReport {
+                                key: key(path, &reference.span),
+                                name: reference.name.clone(),
+                                kind: reference.kind,
+                                import: key(path, &import.import.span),
+                                definition: self
+                                    .definition_at(path, reference.span.start)
+                                    .expect("recorded reference")
+                                    .into(),
+                            })
                         })
                         .collect(),
                     component_uses: self

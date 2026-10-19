@@ -58,12 +58,27 @@ All rows marked Supported below passed. Rust tests are in [spec.rs](../tests/spe
 | Malformed input vs unresolved identifiers | Syntax Err, semantic gated; undefined tag remains Ok/Unresolved | Supported | phase-1 malformed/undefined tests; `invalid-*` fixtures |
 | Routing, collections, middleware, integrations, custom renderers/directives, actions, adapters | Expressions/imports remain available as facts | Project required; no project graph or config execution | Contract boundary; no runtime implementation |
 | File-level incremental analysis | Optional `AnalysisDatabase` manages caller-supplied paths and text; unchanged files reuse owned results and syntax errors | Supported with `incremental`; no filesystem access or import resolution | `incremental` unit tests; `tests/incremental.rs` |
-| Project component uses and unused exports | `component_uses_of` returns template uses of components imported from a file, directly or through re-export chains (`export { default as X } from`, `export *`), with their element, attributes, directives and slot; `incoming_reexports`/`outgoing_reexports` expose resolved re-export edges; `unused_exports` lists `Other`-role exports no resolved import or re-export reaches | Supported candidates; resolvers receive re-exports as binding-free server imports; unresolved modules and non-`.astro` importers not seen | `tests/project.rs` |
-| Project report (`serde`) | Versioned JSON summary of files, diagnostics, exports, imports with resolution, component uses with props/directives/slot, and unused-export keys; records keyed `path#start-end` | Supported; [ADR 0004](adr/0004-export-model-and-report.md) | `tests/report.rs`; `examples/atlas_report.rs` |
-| Project import and file-usage search | Immutable source/analysis snapshots, explicit module resolution states, direct importers and definite lexical uses, versioned invalidation on source/file/resolver changes | Supported with default features; `incremental` optionally caches results; default resolver matches explicit relative virtual paths; exported declaration lookup is outside this stage | `tests/project.rs`; [ADR 0003](adr/0003-project-import-search.md) |
+| External ESM JS/TS | Path-selected grammar, Module scopes, JSX and type/value references, named/default/type exports; anonymous defaults retain the full export range | Supported; no Astro builtins/roles/validation, CommonJS or type inference | `tests/external_sources.rs` |
+| Project component uses and unused exports | `component_uses_of` returns template uses with their elements; re-export APIs expose saved edges; `unused_exports` recognizes default/named/namespace imports and re-exports, with default excluded from stars | Supported candidates; re-export resolvers receive the actual domain; unresolved modules and unregistered consumers are not seen | `tests/project.rs`; `tests/definitions.rs` |
+| Cross-file definitions | Borrowed local/export/file targets through named/default imports, aliases and re-exports; explicit priority, deduplicated targets, ambiguity and reasoned failure | Supported; no member resolution or type inference | `tests/definitions.rs`; `tests/project_incremental.rs` |
+| Project report (`serde`) | Shared Serde summary with diagnostics, exports, imports, imported references and definitions, component uses, unused-export keys; schema 1 and `path#start-end` keys | Supported; example defaults to TOON, with JSON available | `tests/report.rs`; `examples/atlas_report.rs`; [ADR 0006](adr/0006-esm-definitions-and-toon.md) |
+| Project import and file-usage search | Immutable source/analysis snapshots, explicit module resolution states, direct importers and definite lexical uses, versioned invalidation on source/file/resolver changes | Supported with default features; `incremental` optionally caches results; default resolver matches explicit relative virtual paths | `tests/project.rs`; [ADR 0003](adr/0003-project-import-search.md) |
 | TS checking, rendering, runtime APIs, browser DOM, CSS cascade, preprocessors, CLI | Not implemented | Out of scope | Contract boundary |
 
 ## File-local search API
+
+`analyze_file(path, source)` selects Astro or external ESM syntax without reading
+the path. Supported external extensions are `.js`, `.mjs`, `.jsx`, `.ts`, `.mts`,
+`.tsx`, `.d.ts` and `.d.mts`. Grammar comes from the pinned Oxc
+`SourceType::from_path`, including its JSX and declaration-file rules. External
+scopes have `ScopeDomain::Module`; no server/browser environment is inferred.
+Astro builtins, special export roles, template validation and transfer boundaries
+apply only to Astro sources. External default exports reference a local ID when
+available, otherwise their whole export span. Explicit `.cjs`, `.cts` and
+`.d.cts` return `atlas/unsupported-source-type`; CommonJS semantics are not
+implemented. Other virtual keys retain Astro syntax. `analyze(source)` stays
+Astro-only. Parser/semantic failures use the common `Source analysis failed`
+display prefix and retain their original diagnostics/spans.
 
 `FileFacts::declarations_named(name)` returns borrowed `Binding` records with an exact, case-sensitive name match. Each lexical declaration keeps its own ID and scope; an import is found under its local alias. `FileFacts::reference_at(offset)` returns a borrowed `Reference` when `span.start <= offset < span.end`, retaining its complete resolution state. Offsets use original-source UTF-8 bytes, including bytes within a multibyte character; end-of-file and out-of-range positions return `None`. Only recorded reference spans match: a component member's root is a reference in both opening and closing tags, while its property names are not.
 
@@ -103,13 +118,13 @@ applications are in [ADR 0005](adr/0005-semantic-boundaries-and-transfer.md).
 
 ## Incremental API
 
-Enable the `incremental` Cargo feature to use `AnalysisDatabase::new()` or `Default`. `set_source(path, text)` registers or replaces complete source text without analyzing it. `analyze_file(path)` returns `None` for an unregistered key and otherwise returns an `Arc<Result<FileFacts, AnalysisError>>`. It reuses successful facts and syntax errors until the file changes; the next request analyzes its latest full text. Identical text updates are skipped before changing the input revision. Updating one file does not rerun another file's analysis.
+Enable the `incremental` Cargo feature to use `AnalysisDatabase::new()` or `Default`. `set_source(path, text)` registers or replaces complete source text without analyzing it. `analyze_file(path)` returns `None` for an unregistered key and otherwise returns an `Arc<Result<FileFacts, AnalysisError>>`. Each Salsa input retains its path and uses the same grammar selection as `analyze_file(path, source)`. It reuses successful facts and syntax errors until the file changes; the next request analyzes its latest full text. Identical text updates are skipped before changing the input revision. Updating one file does not rerun another file's analysis.
 
 Paths follow `PathBuf` equality/hashing without canonicalization or filesystem I/O. Returned results remain usable across updates and database destruction; IDs belong to each result, not to a stable cross-revision namespace. `remove_file(path)` unregisters a path and returns whether it existed. Internal Salsa inputs remain allocated until the database is dropped, and caller-held `Arc` values retain earlier results independently. There is no reset, persistent cache, or parallel query API. See [ADR 0002](adr/0002-incremental-analysis.md) for the original file-level decision and [ADR 0003](adr/0003-project-import-search.md) for removal and project snapshots.
 
 ## Project import search
 
-`analyze_project(sources)` returns an owned `ProjectSnapshot` using the default `RelativeResolver`; `analyze_project_with_resolver(sources, &resolver)` borrows a custom resolver only for that call. Both are available with default features and analyze anew on every call without a cache or filesystem access. Input is an iterator of pairs with paths implementing `Into<PathBuf>` and sources implementing `Into<Arc<str>>`. Paths follow `PathBuf` equality; the last source for a duplicate key wins before analysis. With the optional `incremental` feature, `AnalysisDatabase::analyze_project()` returns a cached `Arc<ProjectSnapshot>` over registered Astro buffers. Both entry points share index construction and query semantics. Each `ProjectFile` retains an `Arc<str>` source and its `Arc<Result<FileFacts, AnalysisError>>`; file-local IDs keep their original meaning. `files()` and `file(path)` expose these results, including errors. Failed importers contribute no outgoing imports or identifier uses. Target existence and target syntax validity are separate: an import can resolve to a supplied file whose analysis failed.
+`analyze_project(sources)` returns an owned `ProjectSnapshot` using the default `RelativeResolver`; `analyze_project_with_resolver(sources, &resolver)` borrows a custom resolver only for that call. Both are available with default features and analyze anew on every call without a cache or filesystem access. Input is an iterator of pairs with paths implementing `Into<PathBuf>` and sources implementing `Into<Arc<str>>`. Paths follow `PathBuf` equality; the last source for a duplicate key wins before analysis. With the optional `incremental` feature, `AnalysisDatabase::analyze_project()` returns a cached `Arc<ProjectSnapshot>` over registered Astro/ESM buffers. Both entry points share path-selected grammar, index construction and query semantics. Each `ProjectFile` retains an `Arc<str>` source and its `Arc<Result<FileFacts, AnalysisError>>`; file-local IDs keep their original meaning. `files()` and `file(path)` expose these results, including errors. Failed importers contribute no outgoing imports or identifier uses. Target existence and target syntax validity are separate: an import can resolve to a supplied file whose analysis failed.
 
 | Snapshot method | Contract |
 | --- | --- |
@@ -117,13 +132,65 @@ Paths follow `PathBuf` equality/hashing without canonicalization or filesystem I
 | `incoming_imports(path)` | Direct import declarations whose module resolved to the exact supplied target key. |
 | `references_to_file(path)` | Value/type references definitely bound to an import of that target file, including aliases and namespace roots. |
 | `reference_at(path, offset)` | A canonical local reference and its originating import, if definitely bound to one. Module resolution uncertainty does not replace lexical `Resolution`. |
+| `definition_at(path, offset)` | A saved reference's declaration/export/file target, ambiguous candidates, or an unresolved reason; `None` without a recorded reference. |
 | `revision()` | `None` for uncached analysis; `Some(ProjectRevision)` with database-local source/resolver counters for cached analysis. They are not identities across databases. |
 
-Results borrow canonical file records and are ordered by path, then original-source span. Shadowed locals, unresolved identifiers, builtins, and runtime-dependent candidate bindings do not become imported-file uses. An unknown path produces no matches. Resolving a named import's module does not validate that export or identify its declaration. Re-exports are indexed as separate edges and followed only by `component_uses_of` and `unused_exports`; dynamic imports, script `src`, and CSS dependencies are outside this stage.
+Results borrow canonical file records and are ordered by path, then original-source span. Shadowed locals, unresolved identifiers, builtins, and runtime-dependent candidate bindings do not become imported-file uses. An unknown path produces no matches. Resolving a named import's module alone does not validate that export; `definition_at` separately follows saved import/re-export records. Resolvers receive re-exports as binding-free imports in their actual Module or Server domain. Dynamic imports, script `src`, and CSS dependencies are outside this stage.
 
 The default `RelativeResolver` matches explicit `./` and `../` specifiers using lexical dot/parent normalization and collapsing repeated separators over supplied virtual paths. It returns the original supplied key; multiple keys normalizing to the same target produce `Ambiguous`. Missing paths are `Unresolved`. Bare specifiers, absolute paths, URLs, backslashes, directory forms ending in `/`, `/.`, or `/..`, and query/hash suffixes are `Unsupported`; extensions and directory indexes are not inferred. There is no filesystem, symlink, or case-folding lookup. `ModuleResolver` implementations can use the original import, execution domain, and immutable `ProjectSources`, including source contents, to supply other policies. A resolver's `Resolved` result for an absent exact key is converted to `Unresolved`. Custom `Ambiguous` candidates are retained as reported for inspection; they are not validated or indexed as resolved imports.
 
 With `AnalysisDatabase`, any source addition, edit, removal, or call to `set_module_resolver` invalidates the complete project index on demand, including negative lookups. Identical source updates and removal of an unknown key preserve it. File parsing remains memoized separately; configuration changes do not reparse unchanged files. Resolver implementations must use immutable settings and the supplied snapshot, and callers must replace them whenever their settings or external inputs change. Earlier project results retain their sources, facts, and resolution decisions across updates and database destruction.
+
+## Cross-file definition API
+
+`definition_at` returns `Option<DefinitionResolution<'_>>`. It searches recorded
+reference spans with the same UTF-8 half-open contract as `reference_at` and
+traverses only the snapshot's saved analyses and module resolutions. It performs
+no parsing, resolver execution, I/O or source evaluation. Local references return
+canonical `Binding` records. Imported references follow named/default imports,
+aliases, imported-name exports, named re-exports and `export *` chains. Explicit
+exports take precedence, stars exclude default, and repeated routes to one
+declaration are merged. Multiple distinct targets are `Ambiguous` in path/span
+order. Active `(path, export name)` pairs detect cycles; a star cycle can still
+reach an explicit definition, while an otherwise cyclic lookup returns `Cycle`.
+A failed or unopened star branch prevents an assumed unique definition.
+
+`DefinitionKind` contains a borrowed declaration, anonymous/expression export,
+Astro component file, or module file for a namespace root. File targets cover
+the original source's complete span. Namespace member names and dynamic property
+strings are not references and yield `None`; the namespace root resolves to its
+module. The query does not infer member values or types. `DefinitionUnresolved`
+distinguishes unresolved/unsupported/ambiguous module resolution, unsupported
+source type, failed analysis, missing export and cycle; local unresolved,
+builtin and runtime-dependent references have separate reasons. Retained
+snapshots keep their original IDs, declarations and source buffers after
+updates, deletion, re-registration and database destruction.
+
+## Project report and directory example
+
+With `serde`, `ProjectReport` is a shared model for any Serde encoding, retaining
+`schema_version: 1`. Each file's `references` lists only references bound to
+imports. Each record has a reference `key`, `name`, reference `kind`, originating
+`import` key and `definition` (`Resolved`, `Ambiguous` candidates or `Unresolved`
+reason). Targets carry a `key` and kind; declaration/export keys use their saved
+spans and component/module keys cover the entire file. Other report fields keep
+diagnostics, exports, imports/module resolution, component uses and unused
+exports. No migration layer is required for this additive field.
+
+```sh
+cargo run --locked --features serde --example atlas-report -- ./src
+cargo run --locked --features serde --example atlas-report -- ./src --format toon
+cargo run --locked --features serde --example atlas-report -- ./src --format json
+```
+
+The example's arguments are `atlas-report <dir> [--format toon|json]`; TOON is
+the default. It uses the default settings of dev-only `toon-format = "=0.7.0"`
+with default features disabled, without adding a normal dependency or library
+feature. Invalid arguments and I/O/encoding/output errors print to stderr and
+exit nonzero. It collects the supported extensions recursively, skips `.git`,
+`node_modules`, `target`, `dist`, `.astro` directories and never follows symlinks.
+CommonJS files are not collected. The library APIs themselves do no directory
+collection or I/O. See [ADR 0006](adr/0006-esm-definitions-and-toon.md).
 
 ## Fixed-release differences
 

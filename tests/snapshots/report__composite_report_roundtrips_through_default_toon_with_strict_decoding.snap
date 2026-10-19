@@ -1,0 +1,284 @@
+---
+source: tests/report.rs
+expression: "serde_json::to_string_pretty(&report).unwrap()"
+---
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "path": "Card.astro",
+      "analyzed": true,
+      "diagnostics": [],
+      "exports": [],
+      "imports": [],
+      "references": [],
+      "component_uses": [
+        {
+          "key": "Page.astro#41-85",
+          "name": "Card",
+          "props": [
+            "title"
+          ],
+          "directives": [
+            "client:visible"
+          ],
+          "slot": null
+        }
+      ]
+    },
+    {
+      "path": "Page.astro",
+      "analyzed": true,
+      "diagnostics": [],
+      "exports": [],
+      "imports": [
+        {
+          "key": "Page.astro#4-36",
+          "source": "./Card.astro",
+          "domain": "Server",
+          "resolution": {
+            "Resolved": "Card.astro"
+          }
+        }
+      ],
+      "references": [
+        {
+          "key": "Page.astro#42-46",
+          "name": "Card",
+          "kind": "Value",
+          "import": "Page.astro#4-36",
+          "definition": {
+            "Resolved": {
+              "key": "Card.astro#0-8",
+              "kind": "AstroComponent"
+            }
+          }
+        }
+      ],
+      "component_uses": []
+    },
+    {
+      "path": "a.ts",
+      "analyzed": true,
+      "diagnostics": [],
+      "exports": [
+        {
+          "key": "a.ts#13-18",
+          "name": "value",
+          "role": "Other",
+          "type_only": false,
+          "source": null,
+          "imported": null
+        },
+        {
+          "key": "a.ts#24-45",
+          "name": "default",
+          "role": "Other",
+          "type_only": false,
+          "source": null,
+          "imported": null
+        }
+      ],
+      "imports": [],
+      "references": [],
+      "component_uses": []
+    },
+    {
+      "path": "ambiguous.ts",
+      "analyzed": true,
+      "diagnostics": [],
+      "exports": [
+        {
+          "key": "ambiguous.ts#0-23",
+          "name": "*",
+          "role": "Other",
+          "type_only": false,
+          "source": "./a.ts",
+          "imported": null
+        },
+        {
+          "key": "ambiguous.ts#24-47",
+          "name": "*",
+          "role": "Other",
+          "type_only": false,
+          "source": "./b.ts",
+          "imported": null
+        }
+      ],
+      "imports": [],
+      "references": [],
+      "component_uses": []
+    },
+    {
+      "path": "b.ts",
+      "analyzed": true,
+      "diagnostics": [],
+      "exports": [
+        {
+          "key": "b.ts#13-18",
+          "name": "value",
+          "role": "Other",
+          "type_only": false,
+          "source": null,
+          "imported": null
+        }
+      ],
+      "imports": [],
+      "references": [],
+      "component_uses": []
+    },
+    {
+      "path": "bad.ts",
+      "analyzed": false,
+      "diagnostics": [
+        {
+          "phase": "Parser",
+          "severity": "Error",
+          "code": null,
+          "message": "Unexpected token",
+          "labels": [
+            {
+              "span": {
+                "start": 13,
+                "end": 14
+              },
+              "message": null
+            }
+          ]
+        }
+      ],
+      "exports": [],
+      "imports": [],
+      "references": [],
+      "component_uses": []
+    },
+    {
+      "path": "barrel.js",
+      "analyzed": true,
+      "diagnostics": [],
+      "exports": [
+        {
+          "key": "barrel.js#20-24",
+          "name": "main",
+          "role": "Other",
+          "type_only": false,
+          "source": "./a.ts",
+          "imported": "Default"
+        }
+      ],
+      "imports": [],
+      "references": [],
+      "component_uses": []
+    },
+    {
+      "path": "use.ts",
+      "analyzed": true,
+      "diagnostics": [],
+      "exports": [],
+      "imports": [
+        {
+          "key": "use.ts#0-35",
+          "source": "./barrel.js",
+          "domain": "Module",
+          "resolution": {
+            "Resolved": "barrel.js"
+          }
+        },
+        {
+          "key": "use.ts#36-88",
+          "source": "./ambiguous.ts",
+          "domain": "Module",
+          "resolution": {
+            "Resolved": "ambiguous.ts"
+          }
+        },
+        {
+          "key": "use.ts#89-124",
+          "source": "./missing.ts",
+          "domain": "Module",
+          "resolution": "Unresolved"
+        },
+        {
+          "key": "use.ts#125-154",
+          "source": "./a.ts",
+          "domain": "Module",
+          "resolution": {
+            "Resolved": "a.ts"
+          }
+        }
+      ],
+      "references": [
+        {
+          "key": "use.ts#155-159",
+          "name": "main",
+          "kind": "Value",
+          "import": "use.ts#0-35",
+          "definition": {
+            "Resolved": {
+              "key": "a.ts#13-18",
+              "kind": "Declaration"
+            }
+          }
+        },
+        {
+          "key": "use.ts#161-170",
+          "name": "ambiguous",
+          "kind": "Value",
+          "import": "use.ts#36-88",
+          "definition": {
+            "Ambiguous": [
+              {
+                "key": "a.ts#13-18",
+                "kind": "Declaration"
+              },
+              {
+                "key": "b.ts#13-18",
+                "kind": "Declaration"
+              }
+            ]
+          }
+        },
+        {
+          "key": "use.ts#172-179",
+          "name": "missing",
+          "kind": "Value",
+          "import": "use.ts#89-124",
+          "definition": {
+            "Unresolved": "UnresolvedModule"
+          }
+        },
+        {
+          "key": "use.ts#181-183",
+          "name": "ns",
+          "kind": "Value",
+          "import": "use.ts#125-154",
+          "definition": {
+            "Resolved": {
+              "key": "a.ts#0-45",
+              "kind": "Module"
+            }
+          }
+        }
+      ],
+      "component_uses": []
+    },
+    {
+      "path": "日本語,\n#[]:|.cts",
+      "analyzed": false,
+      "diagnostics": [
+        {
+          "phase": "Parser",
+          "severity": "Error",
+          "code": "atlas/unsupported-source-type",
+          "message": "Unsupported CommonJS source: 日本語,\n#[]:|.cts",
+          "labels": []
+        }
+      ],
+      "exports": [],
+      "imports": [],
+      "references": [],
+      "component_uses": []
+    }
+  ],
+  "unused_exports": []
+}

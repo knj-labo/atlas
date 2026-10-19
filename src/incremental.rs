@@ -1,6 +1,6 @@
 use crate::{
     AnalysisError, FileFacts, ModuleResolver, ProjectFile, ProjectRevision, ProjectSnapshot,
-    RelativeResolver, analyze,
+    RelativeResolver, analyze_file,
 };
 use salsa::Setter;
 use std::{
@@ -76,7 +76,7 @@ impl AnalysisDatabase {
                 self.invalidate_project_cache();
             }
         } else {
-            let file = SourceFile::new(&self.database, Arc::<str>::from(source));
+            let file = SourceFile::new(&self.database, path.clone(), Arc::<str>::from(source));
             self.files.insert(path, file);
             self.invalidate_project_cache();
         }
@@ -106,7 +106,7 @@ impl AnalysisDatabase {
         self.project.take();
     }
 
-    /// Analyze registered Astro buffers and index direct imports and their uses.
+    /// Analyze registered Astro/ESM buffers and index imports and their uses.
     ///
     /// Unchanged calls reuse the same snapshot. Any source addition, update,
     /// removal, or resolver replacement rebuilds the project index on demand;
@@ -159,7 +159,7 @@ impl AnalysisDatabase {
     /// Analyze a registered file, reusing the cached result when possible.
     ///
     /// Returns `None` for an unregistered path. Both `Ok(FileFacts)` and
-    /// `Err(AnalysisError)` are memoized with the same contract as [`analyze`].
+    /// `Err(AnalysisError)` are memoized with the same contract as [`analyze_file`].
     /// Successful facts may contain Astro diagnostics with error severity.
     pub fn analyze_file(
         &self,
@@ -183,6 +183,8 @@ impl salsa::Database for Database {}
 #[salsa::input]
 struct SourceFile {
     #[returns(ref)]
+    path: PathBuf,
+    #[returns(ref)]
     text: Arc<str>,
 }
 
@@ -191,13 +193,13 @@ fn analyze_input(
     db: &dyn salsa::Database,
     file: SourceFile,
 ) -> Arc<Result<FileFacts, AnalysisError>> {
-    Arc::new(analyze(file.text(db)))
+    Arc::new(analyze_file(file.path(db), file.text(db)))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::DiagnosticPhase;
+    use crate::{DiagnosticPhase, analyze};
     use std::sync::atomic::{AtomicUsize, Ordering};
 
     fn counted_database() -> (AnalysisDatabase, Arc<AtomicUsize>) {
