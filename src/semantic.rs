@@ -150,6 +150,9 @@ pub(crate) fn project(
         symbols.insert(id, binding);
     }
     if matches!(domain, ScopeDomain::Server | ScopeDomain::Module) {
+        if domain == ScopeDomain::Module {
+            implicit_declaration_exports(semantic, facts, &symbols);
+        }
         for node in semantic.nodes().iter() {
             // Exports inside namespaces and ambient modules are not module exports.
             if !matches!(semantic.nodes().parent_kind(node.id()), AstKind::Program(_)) {
@@ -186,6 +189,7 @@ pub(crate) fn project(
                         type_only: symbol
                             .is_some_and(|id| !semantic.scoping().symbol_flags(id).is_value()),
                         role: ExportRole::Other,
+                        default_expression: symbol.is_none(),
                     });
                 }
                 continue;
@@ -224,6 +228,7 @@ pub(crate) fn project(
                         "Props" if type_only && domain == ScopeDomain::Server => ExportRole::Props,
                         _ => ExportRole::Other,
                     },
+                    default_expression: false,
                 });
             };
             match node.kind() {
@@ -378,6 +383,65 @@ pub(crate) fn project(
         references,
     }
 }
+
+fn implicit_declaration_exports(
+    semantic: &Semantic<'_>,
+    facts: &mut FileFacts,
+    symbols: &HashMap<SymbolId, Binding>,
+) {
+    let source_type = semantic.source_type();
+    if !source_type.is_typescript_definition() || !source_type.is_module() {
+        return;
+    }
+    let program = semantic.nodes().program();
+    // Declaration-file modules implicitly export their declarations unless an
+    // export list, star or assignment establishes an explicit export surface.
+    // `export` modifiers on declarations do not disable that ambient context.
+    if program.body.iter().any(|statement| match statement {
+        ast::Statement::ExportNamedDeclaration(export) => export.declaration.is_none(),
+        ast::Statement::ExportAllDeclaration(_) | ast::Statement::TSExportAssignment(_) => true,
+        ast::Statement::ExportDefaultDeclaration(export) => {
+            export.declaration.as_expression().is_some()
+        }
+        _ => false,
+    }) {
+        return;
+    }
+    let mut push = |id: &ast::BindingIdentifier<'_>| {
+        if let Some(symbol) = id.symbol_id.get() {
+            facts.exports.push(Export {
+                name: id.name.to_string(),
+                span: range(id.span),
+                local: Some(symbols[&symbol].id),
+                source: None,
+                imported: None,
+                type_only: !semantic.scoping().symbol_flags(symbol).is_value(),
+                role: ExportRole::Other,
+                default_expression: false,
+            });
+        }
+    };
+    for statement in &program.body {
+        match statement.as_declaration() {
+            Some(ast::Declaration::VariableDeclaration(variables)) => {
+                for declarator in &variables.declarations {
+                    for id in declarator.id.get_binding_identifiers() {
+                        push(id);
+                    }
+                }
+            }
+            // Imported aliases stay private even inside an ambient export context.
+            Some(ast::Declaration::TSImportEqualsDeclaration(_)) => {}
+            Some(declaration) => {
+                if let Some(id) = declaration.id() {
+                    push(id);
+                }
+            }
+            None => {}
+        }
+    }
+}
+
 fn access_path<'a, 'b>(
     expression: &'b ast::Expression<'a>,
 ) -> Option<(&'b ast::IdentifierReference<'a>, String)> {

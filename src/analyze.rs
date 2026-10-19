@@ -207,6 +207,7 @@ pub(crate) fn to_diagnostics(errors: &[OxcDiagnostic], phase: DiagnosticPhase) -
 }
 fn canonicalize(facts: &mut FileFacts) {
     facts.imports.sort_by_key(|i| i.span.start);
+    facts.exports.sort_by_key(|e| (e.span.start, e.span.end));
     facts.components.sort_by_key(|c| c.span.start);
     facts.references.sort_by_key(|r| (r.span.start, r.span.end));
     let ids: HashMap<_, _> = facts

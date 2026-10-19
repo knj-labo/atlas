@@ -25,6 +25,11 @@ output encoding.
   Default exports retain a local declaration ID when available; anonymous and
   expression defaults retain the complete export range. Browser script exports
   remain separate from the containing Astro component's exports.
+- Declaration modules implicitly export top-level local declarations unless an
+  export list, star or assignment defines their export surface. Global `.d.ts`
+  scripts and ordinary `.ts` files do not gain implicit exports. Preserve the
+  syntactic distinction between default expressions and unresolved local export
+  specifiers as Rust-only metadata; an unresolved alias stays unresolved.
 - Use the same path-selected analysis in projects and Salsa. Store the original
   path in each Salsa input and pass the actual domain to re-export resolvers.
   Do not add extension guessing, package configuration or filesystem resolution.
@@ -39,6 +44,15 @@ output encoding.
   explicit declaration; an otherwise cyclic lookup returns `Cycle`. Failed or
   unopened star branches cannot establish a unique target. Namespace roots
   return modules; properties, dynamic members and type inference are excluded.
+- Each definition root accumulates reachable targets/failures while visiting each
+  `(path, name)` once. Active visits detect cycles; completed visits add nothing.
+  A report batch reuses only finished binding/export root results, keeping SCC
+  traversal state separate. Recorded references are wrapped directly without
+  repeated source-offset searches.
+- Attribute component uses through the same definition resolver, including local
+  imported-name/default re-exports, explicit priority and ambiguity. Namespace
+  template members follow static export paths; ordinary object members are not
+  inferred. Direct Astro namespace imports retain single-member file candidates.
 - Distinguish unresolved, unsupported and ambiguous module resolution,
   unsupported source types, failed target analysis, missing exports and cycles.
   Builtins, unresolved lexical references and runtime-dependent references retain
@@ -83,5 +97,7 @@ the transfer contract in ADR 0005 unchanged.
 - [TOON Rust 0.7.0](https://docs.rs/crate/toon-format/0.7.0)
 - [External grammar tests](../../tests/external_sources.rs)
 - [Definition queries](../../tests/definitions.rs)
+- [Shared graph regressions](../../tests/definition_graph_regressions.rs)
+- [Component attribution](../../tests/component_definitions.rs)
 - [Incremental retention](../../tests/project_incremental.rs)
 - [Report round trip](../../tests/report.rs)
