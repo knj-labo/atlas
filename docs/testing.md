@@ -50,13 +50,37 @@ Compiler evidence and Node grammar checks remain separate. The pinned compiler r
 
 The two new failures were reproduced before their fixes: a backslash followed by an actual U+2028/U+2029 produced `--to<separator>ne` instead of `--tone`; NEL/BOM keys resolved to declarations with the wrong injection origins. The `css_line_continuations` and `injected_ecmascript_whitespace` tests now check names, target IDs, key/value origins, UTF-8 spans, and raw source recovery. The three registered fixtures have accepted snapshots and independent compiler extraction/helper evidence.
 
-`css_parser_boundaries` checks charset/import rules, nested selectors and conditions, duplicate declarations, `!important`, and custom-property block values containing semicolons and braces. `css_decoded_names_preserve_original_source` distinguishes literal Unicode escapes from line continuations and checks HTML entities, JavaScript hex/braced Unicode escapes, and CSS escapes. All 83 pre-refactor snapshot bodies are unchanged. The 16 AST semantic fixtures use their file names as IDs and matching snapshot filenames. Default and serde-only test runs cover 84 Rust tests, 86 snapshots, and four doctests; compiler comparisons cover 86 cases, plus four registry rejection tests.
+`css_parser_boundaries` checks charset/import rules, nested selectors and conditions, duplicate declarations, `!important`, and custom-property block values containing semicolons and braces. `css_decoded_names_preserve_original_source` distinguishes literal Unicode escapes from line continuations and checks HTML entities, JavaScript hex/braced Unicode escapes, and CSS escapes. All 83 pre-refactor snapshot bodies are unchanged. The 16 AST semantic fixtures use their file names as IDs and matching snapshot filenames. Current default and serde-only runs cover 135 and 143 Rust tests respectively, plus 86 unchanged Astro snapshots and six default-feature doctests; compiler comparisons cover 86 cases, plus four registry rejection tests.
 
 ## Incremental verification
 
+### ESM, definition queries and report encodings
+
+[external_sources.rs](../tests/external_sources.rs) covers path-selected ESM
+syntax, declaration files, type exports/references, default declarations and
+expressions, JSX bindings, shadowing, Unicode/CRLF byte spans, parser/semantic
+failures, CommonJS rejection and separation from Astro builtins/roles/validation.
+[definitions.rs](../tests/definitions.rs) covers mixed-language projects, aliases,
+namespace roots, imported-name exports, named/default/star chains, explicit
+priority, diamond deduplication, ambiguity, cycles, missing/unsupported/failed
+targets and saved resolver decisions. Incremental project tests verify grammar
+for identical source text at different extensions, cache invalidation, edits,
+deletion/re-registration and retained IDs/declarations/source buffers.
+
+[report.rs](../tests/report.rs) compares default TOON encoding after strict decode
+with the JSON value of a composite report. It includes empty arrays, nulls, enums,
+Japanese, newlines and delimiters in paths/diagnostics, imported-reference keys,
+ambiguous candidates and unresolved reasons. The report example has argument,
+collection, symlink, TOON/JSON equivalence and I/O/output-error tests. Report
+snapshots include the additive reference records at schema version 1. Snapshot
+rendering recursively sorts object keys even when TOON's dev dependency enables
+`serde_json/preserve_order`; existing Astro fixture bodies remain unchanged.
+`toon-format 0.7.0` disables its default features and appears only on development
+dependency edges. Compiler/transfer comparisons retain their existing pins.
+
 The optional `incremental` feature has six unit tests in [incremental.rs](../src/incremental.rs) and four public-API tests in [tests/incremental.rs](../tests/incremental.rs). Unit tests install a test-only Salsa `WillExecute` event callback. They count query executions to verify lazy registration, memo reuse, identical-text no-ops, isolation between files, latest-text analysis after multiple pending updates, independent inputs for equal text at different paths, and caching/recovery for parser, semantic, and CSS syntax errors. Pointer identity checks additionally verify shared `Arc` results; execution events establish that the query did not rerun.
 
-Public-API tests compare all 86 registered fixtures with standalone `analyze`, check repeated shared results, retain results across updates and database destruction, and verify independent databases, unknown paths, and lexical `PathBuf` keys that do not require files to exist. Fixture parity covers both successful facts and syntax errors without new snapshots or compiler baselines. Including the file-local and project query suites, incremental-only and all-feature runs cover 98 Rust tests, the existing 86 snapshots, the 86 fixture parity comparisons, and six doctests.
+Public-API tests compare all 86 registered fixtures with standalone `analyze`, check repeated shared results, retain results across updates and database destruction, and verify independent databases, unknown paths, and lexical `PathBuf` keys that do not require files to exist. Fixture parity covers both successful facts and syntax errors without new snapshots or compiler baselines. Including the file-local and project query suites, current incremental-only and all-feature runs cover 151 and 159 Rust tests respectively, the existing 86 Astro snapshots, the 86 fixture parity comparisons, and eight all-feature doctests.
 
 CI tests all four feature combinations: default, serde only, incremental only, and both features. It checks that the default normal dependency tree contains no Salsa packages and runs doctests with default and all features. Rust 1.91.1 remains pinned; Salsa 0.28.5 enables only `macros` and `inventory`.
 
@@ -117,6 +141,7 @@ cargo test --locked --doc --all-features
 cargo clippy --locked --all-targets --all-features -- -D warnings
 npm ci --ignore-scripts
 npm run test:conformance
+npm run test:transfer
 ```
 
 Inspect the default dependency boundary with `cargo tree --locked --edges normal --prefix none`; no `salsa`, `salsa-macros`, or `salsa-macro-rules` package should appear. `cargo tree --locked --features incremental --edges normal --prefix none` includes the pinned Salsa packages.

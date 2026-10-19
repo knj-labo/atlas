@@ -29,5 +29,7 @@ slots) in a stable machine-readable form. Fallow and AI agents need that form.
 
 ## Consequences
 
-Re-export traversal and standalone JS/TS analysis remain deferred. Incompatible
-report changes must bump the schema version.
+Re-export traversal and standalone JS/TS analysis were deferred by this initial
+decision. [ADR 0006](0006-esm-definitions-and-toon.md) adds both, extends schema 1
+with imported-reference definitions, and makes TOON the report example's default
+encoding. `ProjectReport` remains the shared Serde model for JSON and TOON.

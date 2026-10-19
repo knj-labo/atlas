@@ -1,5 +1,6 @@
-//! Owned facts and read-only queries for Astro sources.
-//! Use [`analyze`] for one file or [`analyze_project`] for direct import and
+//! Owned facts and read-only queries for Astro and ESM JavaScript/TypeScript.
+//! Use [`analyze`] for Astro, [`analyze_file`] for path-selected syntax, or
+//! [`analyze_project`] for import, declaration-definition and
 //! file-usage queries over caller-supplied paths and source text. Neither needs
 //! a cache. Enable `incremental` for an `AnalysisDatabase` that memoizes file
 //! analyses and project snapshots.
@@ -47,19 +48,19 @@ mod syntax;
 mod transfer;
 mod validate;
 
-pub use analyze::analyze;
+pub use analyze::{analyze, analyze_file};
 pub use facts::*;
 #[cfg(feature = "incremental")]
 pub use incremental::AnalysisDatabase;
 pub use project::{
-    ProjectComponentUse, ProjectExport, ProjectFile, ProjectImport, ProjectReExport,
-    ProjectReference, ProjectRevision, ProjectSnapshot, analyze_project,
-    analyze_project_with_resolver,
+    Definition, DefinitionKind, DefinitionResolution, DefinitionUnresolved, ProjectComponentUse,
+    ProjectExport, ProjectFile, ProjectImport, ProjectReExport, ProjectReference, ProjectRevision,
+    ProjectSnapshot, analyze_project, analyze_project_with_resolver,
 };
 #[cfg(feature = "serde")]
 pub use report::{
-    ComponentUseReport, ExportReport, FileReport, ImportReport, ProjectReport,
-    REPORT_SCHEMA_VERSION,
+    ComponentUseReport, DefinitionReport, DefinitionTargetKind, DefinitionTargetReport,
+    ExportReport, FileReport, ImportReport, ProjectReport, REPORT_SCHEMA_VERSION, ReferenceReport,
 };
 pub use resolver::{
     ModuleRequest, ModuleResolution, ModuleResolver, ProjectSources, RelativeResolver,

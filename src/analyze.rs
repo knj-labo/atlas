@@ -6,6 +6,95 @@ use oxc_parser::{ParseOptions, Parser};
 use oxc_semantic::{SemanticBuilder, SemanticBuilderAstroExt};
 use oxc_span::SourceType;
 use std::collections::HashMap;
+use std::path::Path;
+
+pub(crate) fn is_commonjs(path: &Path) -> bool {
+    matches!(
+        path.extension().and_then(|s| s.to_str()),
+        Some("cjs" | "cts")
+    )
+}
+
+/// Analyze caller-supplied Astro or ESM JavaScript/TypeScript source, without I/O.
+///
+/// `.js`, `.mjs`, `.jsx`, `.ts`, `.mts`, `.tsx`, `.d.ts` and `.d.mts` use
+/// Oxc's path-based grammar selection. External scopes have domain
+/// [`ScopeDomain::Module`], without Astro builtins, validation or export roles.
+/// `.cjs` and `.cts` (including `.d.cts`) return an unsupported-source diagnostic.
+/// Other virtual path keys retain the Astro grammar of [`analyze`].
+pub fn analyze_file(path: impl AsRef<Path>, source: &str) -> Result<FileFacts, AnalysisError> {
+    let path = path.as_ref();
+    if is_commonjs(path) {
+        return Err(AnalysisError {
+            diagnostics: vec![Diagnostic {
+                phase: DiagnosticPhase::Parser,
+                severity: Severity::Error,
+                code: Some("atlas/unsupported-source-type".into()),
+                message: format!("Unsupported CommonJS source: {}", path.display()),
+                labels: Vec::new(),
+            }],
+            parser_panicked: false,
+        });
+    }
+    if !matches!(
+        path.extension().and_then(|s| s.to_str()),
+        Some("js" | "mjs" | "jsx" | "ts" | "mts" | "tsx")
+    ) {
+        return analyze(source);
+    }
+    let source_type = SourceType::from_path(path).map_err(|error| AnalysisError {
+        diagnostics: vec![Diagnostic {
+            phase: DiagnosticPhase::Parser,
+            severity: Severity::Error,
+            code: Some("atlas/unsupported-source-type".into()),
+            message: format!("Unsupported source path {}: {error}", path.display()),
+            labels: Vec::new(),
+        }],
+        parser_panicked: false,
+    })?;
+    let allocator = Allocator::default();
+    let parsed = Parser::new(&allocator, source, source_type)
+        .with_options(ParseOptions {
+            parse_regular_expression: true,
+            ..ParseOptions::default()
+        })
+        .parse();
+    if parsed.panicked || !parsed.errors.is_empty() {
+        let mut diagnostics = to_diagnostics(&parsed.errors, DiagnosticPhase::Parser);
+        if diagnostics.is_empty() {
+            diagnostics.push(Diagnostic {
+                phase: DiagnosticPhase::Parser,
+                severity: Severity::Error,
+                code: None,
+                message: "Source parser terminated early".into(),
+                labels: Vec::new(),
+            });
+        }
+        return Err(AnalysisError {
+            diagnostics,
+            parser_panicked: parsed.panicked,
+        });
+    }
+    let result = SemanticBuilder::new()
+        .with_check_syntax_error(true)
+        .build(&parsed.program);
+    if !result.errors.is_empty() {
+        return Err(AnalysisError {
+            diagnostics: to_diagnostics(&result.errors, DiagnosticPhase::Semantic),
+            parser_panicked: false,
+        });
+    }
+    let mut facts = FileFacts::default();
+    project(
+        &result.semantic,
+        &mut facts,
+        ScopeDomain::Module,
+        0..source.len().try_into().expect("Oxc source length"),
+        &HashMap::new(),
+    );
+    canonicalize(&mut facts);
+    Ok(facts)
+}
 
 /// Analyze Astro 7.0.6 syntax and return source-positioned owned facts.
 /// Syntax errors produce `Err`; Astro-specific validity diagnostics accompany

@@ -1245,7 +1245,8 @@ fn rust_only_boundary_facts_leave_existing_json_and_report_schema_unchanged() {
     let report_json = serde_json::to_value(&report).unwrap();
     assert_eq!(report_json.as_object().unwrap().len(), 3);
     for file in report_json["files"].as_array().unwrap() {
-        assert_eq!(file.as_object().unwrap().len(), 6);
+        assert_eq!(file.as_object().unwrap().len(), 7);
+        assert!(file["references"].is_array());
         assert!(file.get("boundaries").is_none());
     }
 }

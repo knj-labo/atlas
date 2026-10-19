@@ -149,10 +149,45 @@ pub(crate) fn project(
         facts.declarations.push(binding.clone());
         symbols.insert(id, binding);
     }
-    if domain == ScopeDomain::Server {
+    if matches!(domain, ScopeDomain::Server | ScopeDomain::Module) {
         for node in semantic.nodes().iter() {
             // Exports inside namespaces and ambient modules are not module exports.
             if !matches!(semantic.nodes().parent_kind(node.id()), AstKind::Program(_)) {
+                continue;
+            }
+            if let AstKind::ExportDefaultDeclaration(export) = node.kind() {
+                if domain == ScopeDomain::Module {
+                    let symbol = match &export.declaration {
+                        ast::ExportDefaultDeclarationKind::FunctionDeclaration(f) => {
+                            f.id.as_ref().and_then(|id| id.symbol_id.get())
+                        }
+                        ast::ExportDefaultDeclarationKind::ClassDeclaration(c) => {
+                            c.id.as_ref().and_then(|id| id.symbol_id.get())
+                        }
+                        ast::ExportDefaultDeclarationKind::TSInterfaceDeclaration(t) => {
+                            t.id.symbol_id.get()
+                        }
+                        kind => kind.as_expression().and_then(|e| {
+                            if let ast::Expression::Identifier(id) = e.get_inner_expression() {
+                                id.reference_id
+                                    .get()
+                                    .and_then(|r| semantic.scoping().get_reference(r).symbol_id())
+                            } else {
+                                None
+                            }
+                        }),
+                    };
+                    facts.exports.push(Export {
+                        name: "default".into(),
+                        span: range(export.span),
+                        local: symbol.map(|id| symbols[&id].id),
+                        source: None,
+                        imported: None,
+                        type_only: symbol
+                            .is_some_and(|id| !semantic.scoping().symbol_flags(id).is_value()),
+                        role: ExportRole::Other,
+                    });
+                }
                 continue;
             }
             let (export_kind, source) = match node.kind() {
@@ -181,10 +216,12 @@ pub(crate) fn project(
                     imported,
                     type_only,
                     role: match name {
-                        "getStaticPaths" | "prerender" | "partial" if !type_only => {
+                        "getStaticPaths" | "prerender" | "partial"
+                            if !type_only && domain == ScopeDomain::Server =>
+                        {
                             ExportRole::Astro
                         }
-                        "Props" if type_only => ExportRole::Props,
+                        "Props" if type_only && domain == ScopeDomain::Server => ExportRole::Props,
                         _ => ExportRole::Other,
                     },
                 });
