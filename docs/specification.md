@@ -80,6 +80,16 @@ implemented. Other virtual keys retain Astro syntax. `analyze(source)` stays
 Astro-only. Parser/semantic failures use the common `Source analysis failed`
 display prefix and retain their original diagnostics/spans.
 
+Declaration-file modules also collect implicit top-level local exports when no
+export list, star or assignment defines an explicit surface. Export modifiers on
+declarations preserve this ambient context; import aliases and nested/global
+augmentations stay private. Syntax-free `.d.ts` scripts remain global, while
+`.d.mts` files are modules. Ordinary `.ts`/`.mts` declarations require exports.
+Explicit and implicit records retain source order. Rust-only
+`Export.default_expression` metadata distinguishes a saved default expression or
+anonymous declaration from an unresolved local export alias; serialized facts
+and report schema 1 keep their existing shape.
+
 `FileFacts::declarations_named(name)` returns borrowed `Binding` records with an exact, case-sensitive name match. Each lexical declaration keeps its own ID and scope; an import is found under its local alias. `FileFacts::reference_at(offset)` returns a borrowed `Reference` when `span.start <= offset < span.end`, retaining its complete resolution state. Offsets use original-source UTF-8 bytes, including bytes within a multibyte character; end-of-file and out-of-range positions return `None`. Only recorded reference spans match: a component member's root is a reference in both opening and closing tags, while its property names are not.
 
 `FileFacts::references_to(id)` returns borrowed references whose `Resolution::Resolved` binding has that declaration ID. Value and type references are included. Unresolved identifiers, builtins, and runtime-dependent candidates do not count as definite uses. Missing names or unknown declaration IDs yield empty vectors. Multiple results are ordered by `(span.start, span.end, id)` without reordering stored records or changing IDs.
@@ -155,6 +165,13 @@ order. Active `(path, export name)` pairs detect cycles; a star cycle can still
 reach an explicit definition, while an otherwise cyclic lookup returns `Cycle`.
 A failed or unopened star branch prevents an assumed unique definition.
 
+Traversal visits each reachable `(path, export name)` once per root and
+accumulates targets/failures globally, with a separate active set for cycle
+detection. Completed visits contribute nothing rather than inventing missing
+exports. Batch report generation shares only finished binding/export root
+results, never partially explored cycle results. A local export specifier with
+no declaration is `UnresolvedReference`; it is not an anonymous export target.
+
 `DefinitionKind` contains a borrowed declaration, anonymous/expression export,
 Astro component file, or module file for a namespace root. File targets cover
 the original source's complete span. Namespace member names and dynamic property
@@ -165,6 +182,15 @@ source type, failed analysis, missing export and cycle; local unresolved,
 builtin and runtime-dependent references have separate reasons. Retained
 snapshots keep their original IDs, declarations and source buffers after
 updates, deletion, re-registration and database destruction.
+
+`component_uses_of` attributes template uses to the resolved definition file,
+using the same export graph and omitting ambiguous/unresolved targets. It follows
+static namespace export paths in component names, including nested module
+namespaces, without inferring members of ordinary values. Namespace root
+references still resolve to `Module` in `definition_at`. Direct namespace imports
+of Astro retain their legacy single-member file-use candidates. Report generation
+groups component uses once for the batch and wraps stored references directly,
+without searching each source offset again.
 
 ## Project report and directory example
 

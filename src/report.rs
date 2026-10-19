@@ -1,3 +1,4 @@
+use crate::project::DefinitionResolver;
 use crate::{
     Definition, DefinitionKind, DefinitionResolution, DefinitionUnresolved, Diagnostic, ExportRole,
     ImportSpecifier, ModuleResolution, ProjectSnapshot, ReferenceKind, ScopeDomain,
@@ -126,6 +127,12 @@ fn key(path: &Path, span: &Range<u32>) -> String {
 impl ProjectSnapshot {
     /// Summarize this snapshot as a [`ProjectReport`].
     pub fn report(&self) -> ProjectReport {
+        let mut resolver = DefinitionResolver::new(self);
+        self.report_with_resolver(&mut resolver)
+    }
+
+    fn report_with_resolver<'a>(&'a self, resolver: &mut DefinitionResolver<'a>) -> ProjectReport {
+        let mut component_uses = self.component_usage_map(resolver);
         let files = self
             .files()
             .map(|(path, file)| {
@@ -171,21 +178,20 @@ impl ProjectSnapshot {
                         .into_iter()
                         .flat_map(|facts| &facts.references)
                         .filter_map(|reference| {
-                            let import = self.reference_at(path, reference.span.start)?.import?;
+                            let reference = self.project_reference(path, reference);
+                            let import = reference.import?;
                             Some(ReferenceReport {
-                                key: key(path, &reference.span),
-                                name: reference.name.clone(),
-                                kind: reference.kind,
+                                key: key(path, &reference.reference.span),
+                                name: reference.reference.name.clone(),
+                                kind: reference.reference.kind,
                                 import: key(path, &import.import.span),
-                                definition: self
-                                    .definition_at(path, reference.span.start)
-                                    .expect("recorded reference")
-                                    .into(),
+                                definition: resolver.reference(reference).into(),
                             })
                         })
                         .collect(),
-                    component_uses: self
-                        .component_uses_of(path)
+                    component_uses: component_uses
+                        .remove(path)
+                        .unwrap_or_default()
                         .into_iter()
                         .map(|usage| ComponentUseReport {
                             key: key(usage.path, &usage.component.span),
@@ -225,6 +231,71 @@ impl ProjectSnapshot {
                 .into_iter()
                 .map(|e| key(e.path, &e.export.span))
                 .collect(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn repeated_import_uses_share_one_finished_lookup_without_losing_occurrences() {
+        let count = 16_000;
+        let source = format!(
+            "import {{ value }} from './value.ts';\n{}",
+            "value;\n".repeat(count)
+        );
+        let project =
+            crate::analyze_project([("value.ts", "export const value = 1;"), ("use.ts", &source)]);
+        let mut resolver = DefinitionResolver::new(&project);
+        let report = project.report_with_resolver(&mut resolver);
+        let references = &report
+            .files
+            .iter()
+            .find(|f| f.path == "use.ts")
+            .unwrap()
+            .references;
+        assert_eq!(references.len(), count);
+        assert_eq!(resolver.searches, 1);
+        assert_eq!(
+            references.first().unwrap().key,
+            format!(
+                "use.ts#{}-{}",
+                source.find("\nvalue").unwrap() + 1,
+                source.find("\nvalue").unwrap() + 6
+            )
+        );
+        assert_eq!(
+            references.last().unwrap().key,
+            format!(
+                "use.ts#{}-{}",
+                source.rfind("value").unwrap(),
+                source.rfind("value").unwrap() + 5
+            )
+        );
+        assert!(references.iter().all(
+            |r| matches!(&r.definition, DefinitionReport::Resolved(d) if d.key == "value.ts#13-18")
+        ));
+    }
+
+    #[test]
+    fn batch_cache_pairs_binding_ids_with_their_file() {
+        let project = crate::analyze_project([
+            ("first.ts", "export const value = 1;"),
+            ("second.ts", "export const value = 2;"),
+            ("a.ts", "import { value } from './first.ts'; value; value;"),
+            ("b.ts", "import { value } from './second.ts'; value; value;"),
+        ]);
+        let mut resolver = DefinitionResolver::new(&project);
+        let report = project.report_with_resolver(&mut resolver);
+        assert_eq!(resolver.searches, 2);
+        for (path, target) in [("a.ts", "first.ts#13-18"), ("b.ts", "second.ts#13-18")] {
+            let file = report.files.iter().find(|f| f.path == path).unwrap();
+            assert_eq!(file.references.len(), 2);
+            assert!(file.references.iter().all(
+                |r| matches!(&r.definition, DefinitionReport::Resolved(d) if d.key == target)
+            ));
         }
     }
 }

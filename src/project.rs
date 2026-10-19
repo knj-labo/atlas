@@ -12,6 +12,7 @@ use std::{
 
 #[path = "definition.rs"]
 mod definition;
+pub(crate) use definition::DefinitionResolver;
 pub use definition::{Definition, DefinitionKind, DefinitionResolution, DefinitionUnresolved};
 
 /// Analyze Astro/ESM sources and index their imports without a cache.
@@ -272,96 +273,108 @@ impl ProjectSnapshot {
             .collect()
     }
 
-    /// Template component uses of the component defined in `path`.
+    /// Template component uses attributed to their resolved definition file.
     ///
-    /// Direct uses are those whose root reference is an import resolved to
-    /// `path`, including member components such as `<ui.Button>`. Uses through
-    /// re-exports follow `export { default as Button } from` and `export *`
-    /// chains, then named imports or namespace members of the re-exporting file.
-    /// Each result carries the element, so passed attributes, directives, and
-    /// slot assignments are available without a second lookup.
+    /// Uses the same saved export graph as [`Self::definition_at`], including
+    /// imported-name/default re-exports, explicit priority and ambiguity. Static
+    /// namespace members follow module exports; ordinary object members are not
+    /// inferred. Direct namespace imports of Astro retain their file-level use
+    /// contract for a single member. Unresolved and ambiguous targets are omitted.
     pub fn component_uses_of(&self, path: impl AsRef<Path>) -> Vec<ProjectComponentUse<'_>> {
-        let path = path.as_ref();
-        let mut uses: Vec<_> = self
-            .references_to_file(path)
-            .into_iter()
-            .flat_map(|usage| {
-                let facts = self.files[usage.path]
-                    .analysis
-                    .as_ref()
-                    .as_ref()
-                    .expect("indexed facts");
-                facts
-                    .components
-                    .iter()
-                    .filter(move |component| component.reference.id == usage.reference.id)
-                    .map(move |component| ProjectComponentUse {
-                        path: usage.path,
-                        component,
-                        element: &facts.elements[component.element.0],
-                        import: usage.import.expect("file reference has an import"),
-                    })
-            })
-            .collect();
-        // Names under which other files re-export this component.
-        let mut aliases = vec![(path, ImportSpecifier::Default)];
-        let mut next = 0;
-        while let Some((target, specifier)) = aliases.get(next).cloned() {
-            next += 1;
-            for reexport in self.incoming_reexports(target) {
-                let export = reexport.export;
-                let forwards = match &export.imported {
-                    Some(imported) => *imported == specifier,
-                    None => specifier != ImportSpecifier::Default,
-                };
-                let name = if export.imported.is_none() {
-                    specifier.clone()
-                } else {
-                    ImportSpecifier::Named(export.name.clone())
-                };
-                if forwards && !aliases.contains(&(reexport.path, name.clone())) {
-                    aliases.push((reexport.path, name));
-                }
-            }
+        if !self.files.contains_key(path.as_ref()) {
+            return Vec::new();
         }
-        for (target, specifier) in aliases.iter().skip(1) {
-            let ImportSpecifier::Named(name) = specifier else {
+        self.component_usage_map(&mut DefinitionResolver::new(self))
+            .remove(path.as_ref())
+            .unwrap_or_default()
+    }
+
+    pub(crate) fn component_usage_map<'a>(
+        &'a self,
+        resolver: &mut DefinitionResolver<'a>,
+    ) -> BTreeMap<&'a Path, Vec<ProjectComponentUse<'a>>> {
+        let mut uses: BTreeMap<&Path, Vec<ProjectComponentUse<'_>>> = BTreeMap::new();
+        for (path, file) in &self.files {
+            let Ok(facts) = file.analysis.as_ref() else {
                 continue;
             };
-            for import in self.incoming_imports(target) {
-                let facts = self.files[import.path]
-                    .analysis
-                    .as_ref()
-                    .as_ref()
-                    .expect("indexed facts");
-                for binding in &import.import.bindings {
-                    let member = match &binding.target.specifier {
-                        ImportSpecifier::Named(imported) if imported == name => None,
-                        ImportSpecifier::Namespace => Some(format!("{}.{name}", binding.name)),
-                        _ => continue,
+            for component in &facts.components {
+                let reference =
+                    self.project_reference(path, &facts.references[component.reference.id.0]);
+                let Some(import) = reference.import else {
+                    continue;
+                };
+                let DefinitionResolution::Resolved(mut target) = resolver.reference(reference)
+                else {
+                    continue;
+                };
+                if matches!(target.kind, DefinitionKind::Module(_)) {
+                    let Some(members) = component
+                        .name
+                        .strip_prefix(&reference.reference.name)
+                        .and_then(|name| name.strip_prefix('.'))
+                    else {
+                        continue;
                     };
-                    uses.extend(
-                        facts
-                            .components
-                            .iter()
-                            .filter(|component| {
-                                matches!(&component.reference.resolution,
-                                    Resolution::Resolved(local) if local.span == binding.span)
-                                    && member.as_ref().is_none_or(|m| component.name == *m)
-                            })
-                            .map(|component| ProjectComponentUse {
-                                path: import.path,
-                                component,
-                                element: &facts.elements[component.element.0],
-                                import,
-                            }),
-                    );
+                    let direct_namespace_member = !members.contains('.')
+                        && matches!(import.resolution, ModuleResolution::Resolved(path) if path == target.path)
+                        && matches!(&reference.reference.resolution, Resolution::Resolved(binding)
+                            if binding.import.as_ref().is_some_and(|target| target.specifier == ImportSpecifier::Namespace));
+                    let mut resolved = true;
+                    let mut members = members.split('.').peekable();
+                    while let Some(member) = members.next() {
+                        let DefinitionKind::Module(module) = target.kind else {
+                            resolved = false;
+                            break;
+                        };
+                        match resolver.export(target.path, member) {
+                            DefinitionResolution::Resolved(next) => target = next,
+                            DefinitionResolution::Unresolved(
+                                DefinitionUnresolved::MissingExport { .. },
+                            ) if direct_namespace_member
+                                && members.peek().is_none()
+                                && module.analysis.as_ref().as_ref().is_ok_and(|facts| {
+                                    facts.scopes.iter().any(|s| {
+                                        s.parent.is_none() && s.domain == ScopeDomain::Server
+                                    })
+                                }) =>
+                            {
+                                // Legacy direct Astro namespace members are file-level
+                                // candidates, without claiming a member declaration.
+                                let DefinitionResolution::Resolved(next) =
+                                    resolver.export(target.path, "default")
+                                else {
+                                    unreachable!("Astro default")
+                                };
+                                target = next;
+                            }
+                            _ => {
+                                resolved = false;
+                                break;
+                            }
+                        }
+                    }
+                    if !resolved || matches!(target.kind, DefinitionKind::Module(_)) {
+                        continue;
+                    }
+                } else if component.name != reference.reference.name {
+                    continue;
                 }
+                uses.entry(target.path)
+                    .or_default()
+                    .push(ProjectComponentUse {
+                        path,
+                        component,
+                        element: &facts.elements[component.element.0],
+                        import,
+                    });
             }
         }
-        uses.sort_by(|a, b| {
-            (a.path, a.component.span.start).cmp(&(b.path, b.component.span.start))
-        });
+        for uses in uses.values_mut() {
+            uses.sort_by(|a, b| {
+                (a.path, a.component.span.start).cmp(&(b.path, b.component.span.start))
+            });
+        }
         uses
     }
 
@@ -421,6 +434,15 @@ impl ProjectSnapshot {
     ) -> Option<ProjectReference<'_>> {
         let (path, file) = self.files.get_key_value(path.as_ref())?;
         let reference = file.analysis.as_ref().as_ref().ok()?.reference_at(offset)?;
+        Some(self.project_reference(path, reference))
+    }
+
+    /// Wrap an already recorded canonical reference without scanning by offset.
+    pub(crate) fn project_reference<'a>(
+        &'a self,
+        path: &'a Path,
+        reference: &'a Reference,
+    ) -> ProjectReference<'a> {
         let import = match &reference.resolution {
             Resolution::Resolved(binding) => self.indexes[path]
                 .bindings
@@ -428,11 +450,11 @@ impl ProjectSnapshot {
                 .map(|&index| self.import(index)),
             _ => None,
         };
-        Some(ProjectReference {
+        ProjectReference {
             path,
             reference,
             import,
-        })
+        }
     }
 
     fn reexport(&self, edge: usize) -> ProjectReExport<'_> {

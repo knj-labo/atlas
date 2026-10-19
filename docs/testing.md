@@ -50,7 +50,7 @@ Compiler evidence and Node grammar checks remain separate. The pinned compiler r
 
 The two new failures were reproduced before their fixes: a backslash followed by an actual U+2028/U+2029 produced `--to<separator>ne` instead of `--tone`; NEL/BOM keys resolved to declarations with the wrong injection origins. The `css_line_continuations` and `injected_ecmascript_whitespace` tests now check names, target IDs, key/value origins, UTF-8 spans, and raw source recovery. The three registered fixtures have accepted snapshots and independent compiler extraction/helper evidence.
 
-`css_parser_boundaries` checks charset/import rules, nested selectors and conditions, duplicate declarations, `!important`, and custom-property block values containing semicolons and braces. `css_decoded_names_preserve_original_source` distinguishes literal Unicode escapes from line continuations and checks HTML entities, JavaScript hex/braced Unicode escapes, and CSS escapes. All 83 pre-refactor snapshot bodies are unchanged. The 16 AST semantic fixtures use their file names as IDs and matching snapshot filenames. Current default and serde-only runs cover 135 and 143 Rust tests respectively, plus 86 unchanged Astro snapshots and six default-feature doctests; compiler comparisons cover 86 cases, plus four registry rejection tests.
+`css_parser_boundaries` checks charset/import rules, nested selectors and conditions, duplicate declarations, `!important`, and custom-property block values containing semicolons and braces. `css_decoded_names_preserve_original_source` distinguishes literal Unicode escapes from line continuations and checks HTML entities, JavaScript hex/braced Unicode escapes, and CSS escapes. All 83 pre-refactor snapshot bodies are unchanged. The 16 AST semantic fixtures use their file names as IDs and matching snapshot filenames. Current default and serde-only runs cover 156 and 167 Rust tests respectively, plus 86 unchanged Astro snapshots and six default-feature doctests; compiler comparisons cover 86 cases, plus four registry rejection tests.
 
 ## Incremental verification
 
@@ -78,9 +78,21 @@ rendering recursively sorts object keys even when TOON's dev dependency enables
 `toon-format 0.7.0` disables its default features and appears only on development
 dependency edges. Compiler/transfer comparisons retain their existing pins.
 
+[definition_graph_regressions.rs](../tests/definition_graph_regressions.rs) covers
+unresolved local/default aliases, shared cycles with multiple query roots and
+report-batch reuse, blocking failures and layered diamonds. Internal definition
+tests count export expansions on a 49-module graph, and report tests count one
+finished lookup for 16,000 uses while retaining every source occurrence and
+file-local binding identity. These assert work counts rather than wall-clock
+limits. [component_definitions.rs](../tests/component_definitions.rs) checks
+external default/local/expression re-exports, explicit priority, ambiguity,
+namespace paths, direct Astro namespace compatibility, shadowing, duplicates and
+report attribution. Declaration-file tests distinguish implicit/explicit export
+contexts, global scripts, ordinary TS, imported aliases, nesting and source order.
+
 The optional `incremental` feature has six unit tests in [incremental.rs](../src/incremental.rs) and four public-API tests in [tests/incremental.rs](../tests/incremental.rs). Unit tests install a test-only Salsa `WillExecute` event callback. They count query executions to verify lazy registration, memo reuse, identical-text no-ops, isolation between files, latest-text analysis after multiple pending updates, independent inputs for equal text at different paths, and caching/recovery for parser, semantic, and CSS syntax errors. Pointer identity checks additionally verify shared `Arc` results; execution events establish that the query did not rerun.
 
-Public-API tests compare all 86 registered fixtures with standalone `analyze`, check repeated shared results, retain results across updates and database destruction, and verify independent databases, unknown paths, and lexical `PathBuf` keys that do not require files to exist. Fixture parity covers both successful facts and syntax errors without new snapshots or compiler baselines. Including the file-local and project query suites, current incremental-only and all-feature runs cover 151 and 159 Rust tests respectively, the existing 86 Astro snapshots, the 86 fixture parity comparisons, and eight all-feature doctests.
+Public-API tests compare all 86 registered fixtures with standalone `analyze`, check repeated shared results, retain results across updates and database destruction, and verify independent databases, unknown paths, and lexical `PathBuf` keys that do not require files to exist. Fixture parity covers both successful facts and syntax errors without new snapshots or compiler baselines. Including the file-local and project query suites, current incremental-only and all-feature runs cover 172 and 183 Rust tests respectively, the existing 86 Astro snapshots, the 86 fixture parity comparisons, and eight all-feature doctests.
 
 CI tests all four feature combinations: default, serde only, incremental only, and both features. It checks that the default normal dependency tree contains no Salsa packages and runs doctests with default and all features. Rust 1.91.1 remains pinned; Salsa 0.28.5 enables only `macros` and `inventory`.
 

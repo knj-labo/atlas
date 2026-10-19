@@ -273,8 +273,8 @@ pub enum DeclarationKind {
     Injected,
     Other,
 }
-/// An explicit module or frontmatter export. The implicit Astro default
-/// component and exports inside browser scripts are not listed.
+/// A module or frontmatter export, including implicit declaration-module exports.
+/// The implicit Astro default component and browser script exports are not listed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(any(feature = "serde", test), derive(serde::Serialize))]
 pub struct Export {
@@ -289,6 +289,11 @@ pub struct Export {
     pub imported: Option<ImportSpecifier>,
     pub type_only: bool,
     pub role: ExportRole,
+    /// A syntactic default expression/anonymous declaration without a local ID.
+    /// Distinguishes these from unresolved local export specifiers. This metadata
+    /// is excluded from the existing serialized facts/report contract.
+    #[cfg_attr(any(feature = "serde", test), serde(skip))]
+    pub default_expression: bool,
 }
 impl Export {
     pub(crate) fn is_star(&self) -> bool {
