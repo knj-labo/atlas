@@ -1,11 +1,13 @@
 use super::{ProjectFile, ProjectReference, ProjectSnapshot};
 use crate::{
-    Binding, DeclarationId, Export, ImportSpecifier, ModuleResolution, Resolution, ScopeDomain,
+    Binding, DeclarationId, Export, ExportLocal, ImportSpecifier, Meaning, ModuleResolution,
+    Resolution, ScopeDomain, SymbolId,
 };
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeSet, HashMap, HashSet},
     ops::Range,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 
 /// A definition borrowed from the queried snapshot, with its original path.
@@ -36,17 +38,6 @@ impl Definition<'_> {
             }
         }
     }
-
-    fn same_target(&self, other: &Self) -> bool {
-        self.path == other.path
-            && match (self.kind, other.kind) {
-                (DefinitionKind::Declaration(a), DefinitionKind::Declaration(b)) => a.id == b.id,
-                (DefinitionKind::Export(a), DefinitionKind::Export(b)) => a.span == b.span,
-                (DefinitionKind::AstroComponent(_), DefinitionKind::AstroComponent(_))
-                | (DefinitionKind::Module(_), DefinitionKind::Module(_)) => true,
-                _ => false,
-            }
-    }
 }
 
 /// Definition of a recorded reference. Ambiguous candidates are distinct,
@@ -58,7 +49,7 @@ pub enum DefinitionResolution<'a> {
     Unresolved(DefinitionUnresolved),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub enum DefinitionUnresolved {
     UnresolvedReference,
@@ -73,71 +64,313 @@ pub enum DefinitionUnresolved {
     Cycle { path: PathBuf, name: String },
 }
 
-#[derive(Default)]
-struct Search<'a> {
-    targets: Vec<Definition<'a>>,
-    failures: Vec<DefinitionUnresolved>,
-    active: HashSet<(&'a Path, String)>,
-    visited: HashSet<(&'a Path, String)>,
-    #[cfg(test)]
-    export_visits: usize,
+// Keys and terminals own only snapshot-local IDs. No cached record borrows the
+// snapshot, allowing all entry points and threads to share completed SCCs.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+enum Node {
+    Export(String),
+    Symbol(SymbolId),
 }
 
-impl<'a> Search<'a> {
-    fn target(&mut self, path: &'a Path, kind: DefinitionKind<'a>) {
-        let target = Definition { path, kind };
-        if !self
-            .targets
-            .iter()
-            .any(|existing| existing.same_target(&target))
-        {
-            self.targets.push(target);
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct Key {
+    file: usize,
+    node: Node,
+    meaning: Meaning,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum TargetKind {
+    Declaration(DeclarationId),
+    Export(usize),
+    AstroComponent,
+    Module,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+struct Target {
+    file: usize,
+    kind: TargetKind,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct Failure {
+    path: PathBuf,
+    name: String,
+    reason_name: &'static str,
+    reason: DefinitionUnresolved,
+}
+
+impl DefinitionUnresolved {
+    fn name(&self) -> &'static str {
+        match self {
+            Self::UnresolvedReference => "UnresolvedReference",
+            Self::Builtin => "Builtin",
+            Self::RuntimeDependent => "RuntimeDependent",
+            Self::UnresolvedModule => "UnresolvedModule",
+            Self::UnsupportedModule => "UnsupportedModule",
+            Self::AmbiguousModule { .. } => "AmbiguousModule",
+            Self::UnsupportedSourceType { .. } => "UnsupportedSourceType",
+            Self::AnalysisFailed { .. } => "AnalysisFailed",
+            Self::MissingExport { .. } => "MissingExport",
+            Self::Cycle { .. } => "Cycle",
         }
     }
+}
 
-    fn failed(&mut self, reason: DefinitionUnresolved) {
-        if !self.failures.contains(&reason) {
-            self.failures.push(reason);
-        }
+#[derive(Debug, Clone, Default)]
+struct Completed {
+    targets: BTreeSet<Target>,
+    blocking: Option<Failure>,
+    cycle: Option<Failure>,
+    missing: Option<Failure>,
+}
+
+fn retain_first<T: Ord>(into: &mut Option<T>, value: T) {
+    if into.as_ref().is_none_or(|existing| value < *existing) {
+        *into = Some(value);
     }
+}
 
-    fn finish(mut self) -> DefinitionResolution<'a> {
-        self.targets.sort_by(|a, b| {
-            (a.path, a.span().start, a.span().end).cmp(&(b.path, b.span().start, b.span().end))
-        });
-        if self.targets.len() > 1 {
-            return DefinitionResolution::Ambiguous(self.targets);
-        }
-        // A star branch that is absent or revisits an active export cannot
-        // introduce another declaration. An unopened/failed branch can.
-        let blocking = self.failures.iter().find(|reason| {
-            !matches!(
+impl Completed {
+    fn failed(&mut self, project: &ProjectSnapshot, key: &Key, reason: DefinitionUnresolved) {
+        let name = match &key.node {
+            Node::Export(name) => name.clone(),
+            Node::Symbol(id) => {
+                let facts = project.facts(key.file);
+                facts.declarations[facts.symbols[id.0].declarations[0].0]
+                    .name
+                    .clone()
+            }
+        };
+        let slot = match &reason {
+            DefinitionUnresolved::Cycle { .. } => &mut self.cycle,
+            DefinitionUnresolved::MissingExport { .. } => &mut self.missing,
+            _ => &mut self.blocking,
+        };
+        retain_first(
+            slot,
+            Failure {
+                path: project.file_paths[key.file].clone(),
+                name,
+                reason_name: reason.name(),
                 reason,
-                DefinitionUnresolved::MissingExport { .. } | DefinitionUnresolved::Cycle { .. }
-            )
-        });
-        if let Some(reason) = blocking {
-            return DefinitionResolution::Unresolved(reason.clone());
+            },
+        );
+    }
+
+    fn merge(&mut self, other: &Self) {
+        self.targets.extend(other.targets.iter().copied());
+        for (slot, value) in [
+            (&mut self.blocking, &other.blocking),
+            (&mut self.cycle, &other.cycle),
+            (&mut self.missing, &other.missing),
+        ] {
+            if let Some(value) = value {
+                retain_first(slot, value.clone());
+            }
         }
-        if let Some(target) = self.targets.pop() {
-            return DefinitionResolution::Resolved(target);
+    }
+
+    fn is_empty(&self) -> bool {
+        self.targets.is_empty()
+            && self.blocking.is_none()
+            && self.cycle.is_none()
+            && self.missing.is_none()
+    }
+
+    fn borrowed<'a>(&self, project: &'a ProjectSnapshot) -> DefinitionResolution<'a> {
+        if self.targets.len() > 1 {
+            let mut targets: Vec<_> = self
+                .targets
+                .iter()
+                .map(|t| project.borrow_target(*t))
+                .collect();
+            targets.sort_by(|a, b| {
+                (a.path, a.span().start, a.span().end).cmp(&(b.path, b.span().start, b.span().end))
+            });
+            return DefinitionResolution::Ambiguous(targets);
         }
-        let reason = self
-            .failures
-            .iter()
-            .find(|r| matches!(r, DefinitionUnresolved::Cycle { .. }))
-            .or(self.failures.first())
-            .expect("an unsuccessful search has a reason");
-        DefinitionResolution::Unresolved(reason.clone())
+        if let Some(failure) = &self.blocking {
+            return DefinitionResolution::Unresolved(failure.reason.clone());
+        }
+        if let Some(target) = self.targets.first() {
+            return DefinitionResolution::Resolved(project.borrow_target(*target));
+        }
+        let failure = self
+            .cycle
+            .as_ref()
+            .or(self.missing.as_ref())
+            .expect("completed search has a terminal");
+        DefinitionResolution::Unresolved(failure.reason.clone())
     }
 }
 
-/// A batch shares only fully finished root results. Traversal state belongs to
-/// a single root; partial SCC results must never be cached across roots.
+#[derive(Default)]
+struct Expansion {
+    local: Completed,
+    edges: HashSet<Key>,
+    #[cfg(test)]
+    export_comparisons: usize,
+}
+
+#[derive(Debug, Default)]
+pub(super) struct ResolutionCache {
+    completed: HashMap<Key, Arc<Completed>>,
+    #[cfg(test)]
+    pub(super) expansions: usize,
+    #[cfg(test)]
+    pub(super) target_insertions: usize,
+    #[cfg(test)]
+    pub(super) export_comparisons: usize,
+}
+
+impl ResolutionCache {
+    fn resolve(&mut self, project: &ProjectSnapshot, root: Key) -> Arc<Completed> {
+        if let Some(result) = self.completed.get(&root) {
+            return Arc::clone(result);
+        }
+        let mut keys = vec![root.clone()];
+        let mut ids = HashMap::from([(root.clone(), 0)]);
+        let mut expansions = Vec::new();
+        let mut cursor = 0;
+        // Expand only nodes absent from the snapshot's finished cache.
+        while cursor < keys.len() {
+            let expansion = project.expand(&keys[cursor]);
+            #[cfg(test)]
+            {
+                self.expansions += 1;
+                self.export_comparisons += expansion.export_comparisons;
+            }
+            for key in &expansion.edges {
+                if !self.completed.contains_key(key) && !ids.contains_key(key) {
+                    ids.insert(key.clone(), keys.len());
+                    keys.push(key.clone());
+                }
+            }
+            expansions.push(expansion);
+            cursor += 1;
+        }
+        let adjacency: Vec<Vec<usize>> = expansions
+            .iter()
+            .map(|e| {
+                e.edges
+                    .iter()
+                    .filter_map(|key| ids.get(key).copied())
+                    .collect()
+            })
+            .collect();
+        // Iterative Tarjan: SCCs finish in dependency order. The explicit DFS
+        // stack also handles arbitrarily long re-export chains without recursion.
+        let mut index = vec![None; keys.len()];
+        let mut low = vec![0; keys.len()];
+        let mut on_stack = vec![false; keys.len()];
+        let mut active = Vec::new();
+        let mut sequence = 0;
+        for start in 0..keys.len() {
+            if index[start].is_some() {
+                continue;
+            }
+            index[start] = Some(sequence);
+            low[start] = sequence;
+            sequence += 1;
+            active.push(start);
+            on_stack[start] = true;
+            let mut dfs = vec![(start, 0)];
+            while let Some((node, next)) = dfs.last_mut() {
+                let v = *node;
+                if let Some(&w) = adjacency[v].get(*next) {
+                    *next += 1;
+                    if index[w].is_none() {
+                        index[w] = Some(sequence);
+                        low[w] = sequence;
+                        sequence += 1;
+                        active.push(w);
+                        on_stack[w] = true;
+                        dfs.push((w, 0));
+                    } else if on_stack[w] {
+                        low[v] = low[v].min(index[w].unwrap());
+                    }
+                    continue;
+                }
+                dfs.pop();
+                if let Some(&(parent, _)) = dfs.last() {
+                    low[parent] = low[parent].min(low[v]);
+                }
+                if low[v] == index[v].unwrap() {
+                    let mut group = Vec::new();
+                    loop {
+                        let w = active.pop().expect("active SCC");
+                        on_stack[w] = false;
+                        group.push(w);
+                        if w == v {
+                            break;
+                        }
+                    }
+                    let members: HashSet<_> = group.iter().copied().collect();
+                    let cyclic = group.len() > 1 || adjacency[v].contains(&v);
+                    let mut result = Completed::default();
+                    let mut dependencies = Vec::new();
+                    let mut shared = HashSet::new();
+                    for &node in &group {
+                        result.merge(&expansions[node].local);
+                        for edge in &expansions[node].edges {
+                            if ids.get(edge).is_some_and(|id| members.contains(id)) {
+                                continue;
+                            }
+                            let completed = &self.completed[edge];
+                            if shared.insert(Arc::as_ptr(completed)) {
+                                dependencies.push(Arc::clone(completed));
+                            }
+                        }
+                        if cyclic {
+                            let key = &keys[node];
+                            let name = match &key.node {
+                                Node::Export(name) => name.clone(),
+                                Node::Symbol(id) => {
+                                    let facts = project.facts(key.file);
+                                    facts.declarations[facts.symbols[id.0].declarations[0].0]
+                                        .name
+                                        .clone()
+                                }
+                            };
+                            result.failed(
+                                project,
+                                key,
+                                DefinitionUnresolved::Cycle {
+                                    path: project.file_paths[key.file].clone(),
+                                    name,
+                                },
+                            );
+                        }
+                    }
+                    let result = if result.is_empty() && dependencies.len() == 1 {
+                        // Alias chains share the same immutable candidate set.
+                        dependencies.pop().unwrap()
+                    } else {
+                        for dependency in dependencies {
+                            #[cfg(test)]
+                            {
+                                self.target_insertions += dependency.targets.len();
+                            }
+                            result.merge(&dependency);
+                        }
+                        Arc::new(result)
+                    };
+                    for node in group {
+                        self.completed
+                            .insert(keys[node].clone(), Arc::clone(&result));
+                    }
+                }
+            }
+        }
+        Arc::clone(&self.completed[&root])
+    }
+}
+
+/// Borrowing facade; the shared snapshot cache owns every completed result.
 pub(crate) struct DefinitionResolver<'a> {
     project: &'a ProjectSnapshot,
-    bindings: HashMap<(&'a Path, DeclarationId), DefinitionResolution<'a>>,
-    exports: HashMap<(&'a Path, String), DefinitionResolution<'a>>,
     #[cfg(test)]
     pub(crate) searches: usize,
 }
@@ -146,11 +379,26 @@ impl<'a> DefinitionResolver<'a> {
     pub(crate) fn new(project: &'a ProjectSnapshot) -> Self {
         Self {
             project,
-            bindings: HashMap::new(),
-            exports: HashMap::new(),
             #[cfg(test)]
             searches: 0,
         }
+    }
+
+    fn resolve(&mut self, key: Key) -> DefinitionResolution<'a> {
+        let result = {
+            let mut cache = self
+                .project
+                .definitions
+                .lock()
+                .expect("definition cache lock");
+            #[cfg(test)]
+            {
+                self.searches += usize::from(!cache.completed.contains_key(&key));
+            }
+            cache.resolve(self.project, key)
+        };
+        // Convert IDs to borrowed records only after releasing the mutex.
+        result.borrowed(self.project)
     }
 
     pub(crate) fn reference(
@@ -158,22 +406,11 @@ impl<'a> DefinitionResolver<'a> {
         reference: ProjectReference<'a>,
     ) -> DefinitionResolution<'a> {
         match &reference.reference.resolution {
-            Resolution::Resolved(binding) => {
-                let key = (reference.path, binding.id);
-                if let Some(result) = self.bindings.get(&key) {
-                    return result.clone();
-                }
-                #[cfg(test)]
-                {
-                    self.searches += 1;
-                }
-                let mut search = Search::default();
-                self.project
-                    .definition_of_binding(reference.path, binding.id, &mut search);
-                let result = search.finish();
-                self.bindings.insert(key, result.clone());
-                result
-            }
+            Resolution::Resolved(binding) => self.resolve(Key {
+                file: self.project.indexes[reference.path].file_id,
+                node: Node::Symbol(binding.symbol),
+                meaning: reference.reference.meaning,
+            }),
             Resolution::Builtin(_) => {
                 DefinitionResolution::Unresolved(DefinitionUnresolved::Builtin)
             }
@@ -186,21 +423,12 @@ impl<'a> DefinitionResolver<'a> {
         }
     }
 
-    /// `path` is the canonical, successfully analyzed target of a namespace root.
     pub(crate) fn export(&mut self, path: &'a Path, name: &str) -> DefinitionResolution<'a> {
-        let key = (path, name.to_owned());
-        if let Some(result) = self.exports.get(&key) {
-            return result.clone();
-        }
-        #[cfg(test)]
-        {
-            self.searches += 1;
-        }
-        let mut search = Search::default();
-        self.project.definition_of_export(path, name, &mut search);
-        let result = search.finish();
-        self.exports.insert(key, result.clone());
-        result
+        self.resolve(Key {
+            file: self.project.indexes[path].file_id,
+            node: Node::Export(name.into()),
+            meaning: Meaning::Value,
+        })
     }
 }
 
@@ -233,164 +461,244 @@ impl ProjectSnapshot {
         Some(DefinitionResolver::new(self).reference(reference))
     }
 
-    fn definition_of_binding<'a>(
-        &'a self,
-        path: &'a Path,
-        id: DeclarationId,
-        search: &mut Search<'a>,
-    ) {
-        let facts = self.files[path]
+    fn facts(&self, file: usize) -> &crate::FileFacts {
+        self.files[&self.file_paths[file]]
             .analysis
             .as_ref()
             .as_ref()
-            .expect("analyzed binding");
-        let binding = &facts.declarations[id.0];
-        if let Some(target) = &binding.import {
-            let dependency = self.indexes[path].bindings[&id];
-            self.definition_in_module(
-                &self.dependencies[dependency].resolution,
-                &target.specifier,
-                search,
-            );
-        } else {
-            search.target(path, DefinitionKind::Declaration(binding));
+            .expect("analyzed graph node")
+    }
+
+    fn borrow_target(&self, target: Target) -> Definition<'_> {
+        let path = self.file_paths[target.file].as_path();
+        let file = &self.files[path];
+        Definition {
+            path,
+            kind: match target.kind {
+                TargetKind::Declaration(id) => {
+                    DefinitionKind::Declaration(&self.facts(target.file).declarations[id.0])
+                }
+                TargetKind::Export(id) => {
+                    DefinitionKind::Export(&self.facts(target.file).exports[id])
+                }
+                TargetKind::AstroComponent => DefinitionKind::AstroComponent(file),
+                TargetKind::Module => DefinitionKind::Module(file),
+            },
         }
     }
 
-    fn definition_in_module<'a>(
-        &'a self,
+    fn in_module(
+        &self,
+        key: &Key,
         resolution: &ModuleResolution,
         specifier: &ImportSpecifier,
-        search: &mut Search<'a>,
+        expansion: &mut Expansion,
     ) {
         let target = match resolution {
             ModuleResolution::Resolved(path) => path,
             ModuleResolution::Unresolved => {
-                search.failed(DefinitionUnresolved::UnresolvedModule);
+                expansion
+                    .local
+                    .failed(self, key, DefinitionUnresolved::UnresolvedModule);
                 return;
             }
             ModuleResolution::Unsupported => {
-                search.failed(DefinitionUnresolved::UnsupportedModule);
+                expansion
+                    .local
+                    .failed(self, key, DefinitionUnresolved::UnsupportedModule);
                 return;
             }
             ModuleResolution::Ambiguous(candidates) => {
-                search.failed(DefinitionUnresolved::AmbiguousModule {
-                    candidates: candidates.clone(),
-                });
+                expansion.local.failed(
+                    self,
+                    key,
+                    DefinitionUnresolved::AmbiguousModule {
+                        candidates: candidates.clone(),
+                    },
+                );
                 return;
             }
         };
-        let (path, file) = self
-            .files
-            .get_key_value(target)
-            .expect("registered resolution");
+        let file = &self.files[target];
         if let Err(error) = file.analysis.as_ref() {
-            search.failed(
+            expansion.local.failed(
+                self,
+                key,
                 if error
                     .diagnostics
                     .iter()
                     .any(|d| d.code.as_deref() == Some("atlas/unsupported-source-type"))
                 {
-                    DefinitionUnresolved::UnsupportedSourceType { path: path.clone() }
+                    DefinitionUnresolved::UnsupportedSourceType {
+                        path: target.clone(),
+                    }
                 } else {
-                    DefinitionUnresolved::AnalysisFailed { path: path.clone() }
+                    DefinitionUnresolved::AnalysisFailed {
+                        path: target.clone(),
+                    }
                 },
             );
             return;
         }
+        let file = self.indexes[target].file_id;
         let name = match specifier {
             ImportSpecifier::Namespace => {
-                search.target(path, DefinitionKind::Module(file));
+                expansion.local.targets.insert(Target {
+                    file,
+                    kind: TargetKind::Module,
+                });
                 return;
             }
             ImportSpecifier::Default => "default",
             ImportSpecifier::Named(name) => name,
         };
-        self.definition_of_export(path, name, search);
+        expansion.edges.insert(Key {
+            file,
+            node: Node::Export(name.into()),
+            meaning: key.meaning,
+        });
     }
 
-    fn definition_of_export<'a>(&'a self, path: &'a Path, name: &str, search: &mut Search<'a>) {
-        let key = (path, name.to_owned());
-        if search.active.contains(&key) {
-            search.failed(DefinitionUnresolved::Cycle {
-                path: path.to_path_buf(),
-                name: name.into(),
-            });
-            return;
-        }
-        if !search.visited.insert(key.clone()) {
-            return;
-        }
-        #[cfg(test)]
-        {
-            search.export_visits += 1;
-        }
-        search.active.insert(key.clone());
-        let file = &self.files[path];
-        let facts = file.analysis.as_ref().as_ref().expect("analyzed export");
-        if name == "default"
-            && facts
-                .scopes
-                .iter()
-                .any(|s| s.parent.is_none() && s.domain == ScopeDomain::Server)
-        {
-            search.target(path, DefinitionKind::AstroComponent(file));
-        } else {
-            let explicit: Vec<_> = facts
-                .exports
-                .iter()
-                .enumerate()
-                .filter(|(_, e)| e.name == name && !e.is_star())
-                .collect();
-            if explicit.is_empty() {
-                let mut has_stars = false;
-                if name != "default" {
-                    for edge in &self.indexes[path].reexports {
-                        let edge = &self.reexports[*edge];
-                        if facts.exports[edge.index].is_star() {
-                            has_stars = true;
-                            self.definition_in_module(
-                                &edge.resolution,
-                                &ImportSpecifier::Named(name.into()),
-                                search,
+    fn expand(&self, key: &Key) -> Expansion {
+        let mut expansion = Expansion::default();
+        let facts = self.facts(key.file);
+        let path = &self.file_paths[key.file];
+        let index = &self.indexes[path];
+        match &key.node {
+            Node::Symbol(id) => {
+                if let Some(binding) = facts.symbols[id.0].declaration(facts, key.meaning) {
+                    if let Some(import) = &binding.import {
+                        if import.type_only && key.meaning == Meaning::Value {
+                            expansion.local.failed(
+                                self,
+                                key,
+                                DefinitionUnresolved::UnresolvedReference,
+                            );
+                        } else {
+                            let dependency = index.bindings[&binding.id];
+                            self.in_module(
+                                key,
+                                &self.dependencies[dependency].resolution,
+                                &import.specifier,
+                                &mut expansion,
+                            );
+                        }
+                    } else {
+                        expansion.local.targets.insert(Target {
+                            file: key.file,
+                            kind: TargetKind::Declaration(binding.id),
+                        });
+                    }
+                } else {
+                    expansion
+                        .local
+                        .failed(self, key, DefinitionUnresolved::UnresolvedReference);
+                }
+            }
+            Node::Export(name) => {
+                if name == "default"
+                    && facts
+                        .scopes
+                        .iter()
+                        .any(|s| s.parent.is_none() && s.domain == ScopeDomain::Server)
+                {
+                    if matches!(key.meaning, Meaning::Value | Meaning::ValueAsType) {
+                        expansion.local.targets.insert(Target {
+                            file: key.file,
+                            kind: TargetKind::AstroComponent,
+                        });
+                    } else {
+                        expansion.local.failed(
+                            self,
+                            key,
+                            DefinitionUnresolved::UnresolvedReference,
+                        );
+                    }
+                } else if let Some(explicit) = index.exports.get(name) {
+                    // Decide explicit-name priority before filtering meanings.
+                    let mut applicable = false;
+                    for &id in explicit {
+                        #[cfg(test)]
+                        {
+                            expansion.export_comparisons += 1;
+                        }
+                        let export = &facts.exports[id];
+                        if !export.meanings.contains(&key.meaning) {
+                            continue;
+                        }
+                        applicable = true;
+                        if export.source.is_some() {
+                            self.in_module(
+                                key,
+                                &self.reexports[index.export_edges[&id]].resolution,
+                                export.imported.as_ref().expect("named re-export"),
+                                &mut expansion,
+                            );
+                        } else if let Some(target) = export.target {
+                            let symbol = match target {
+                                ExportLocal::Declaration(id) => facts.declarations[id.0].symbol,
+                                ExportLocal::Symbol(id) => id,
+                            };
+                            expansion.edges.insert(Key {
+                                file: key.file,
+                                node: Node::Symbol(symbol),
+                                meaning: key.meaning,
+                            });
+                        } else if export.default_expression {
+                            expansion.local.targets.insert(Target {
+                                file: key.file,
+                                kind: TargetKind::Export(id),
+                            });
+                        } else {
+                            expansion.local.failed(
+                                self,
+                                key,
+                                DefinitionUnresolved::UnresolvedReference,
                             );
                         }
                     }
-                }
-                // A completed revisit contributes nothing: all of its terminals
-                // already belong to this root's accumulator. Only a leaf lookup
-                // with no applicable edge establishes an absent export.
-                if !has_stars {
-                    search.failed(DefinitionUnresolved::MissingExport {
-                        path: path.to_path_buf(),
-                        name: name.into(),
-                    });
-                }
-            } else {
-                for (index, export) in explicit {
-                    if export.source.is_some() {
-                        let edge = self.indexes[path]
-                            .reexports
-                            .iter()
-                            .map(|&i| &self.reexports[i])
-                            .find(|e| e.index == index)
-                            .expect("indexed re-export");
-                        self.definition_in_module(
-                            &edge.resolution,
-                            export.imported.as_ref().expect("named re-export"),
-                            search,
+                    if !applicable {
+                        expansion.local.failed(
+                            self,
+                            key,
+                            DefinitionUnresolved::UnresolvedReference,
                         );
-                    } else if let Some(local) = export.local {
-                        self.definition_of_binding(path, local, search);
-                    } else if export.default_expression {
-                        search.target(path, DefinitionKind::Export(export));
-                    } else {
-                        search.failed(DefinitionUnresolved::UnresolvedReference);
+                    }
+                } else {
+                    let mut type_only_stars = false;
+                    if name != "default" {
+                        for &id in &index.stars {
+                            let export = &facts.exports[id];
+                            if export.type_only && key.meaning == Meaning::Value {
+                                type_only_stars = true;
+                            } else {
+                                self.in_module(
+                                    key,
+                                    &self.reexports[index.export_edges[&id]].resolution,
+                                    &ImportSpecifier::Named(name.clone()),
+                                    &mut expansion,
+                                );
+                            }
+                        }
+                    }
+                    if expansion.edges.is_empty() && expansion.local.is_empty() {
+                        expansion.local.failed(
+                            self,
+                            key,
+                            if type_only_stars {
+                                DefinitionUnresolved::UnresolvedReference
+                            } else {
+                                DefinitionUnresolved::MissingExport {
+                                    path: path.clone(),
+                                    name: name.clone(),
+                                }
+                            },
+                        );
                     }
                 }
             }
         }
-        search.active.remove(&key);
+        expansion
     }
 }
 
@@ -398,8 +706,16 @@ impl ProjectSnapshot {
 mod tests {
     use super::*;
 
+    fn key(project: &ProjectSnapshot, path: &str, name: &str) -> Key {
+        Key {
+            file: project.indexes[Path::new(path)].file_id,
+            node: Node::Export(name.into()),
+            meaning: Meaning::Value,
+        }
+    }
+
     #[test]
-    fn shared_star_graph_expands_each_export_once() {
+    fn shared_star_graph_expands_each_export_once_across_all_queries() {
         let depth = 24;
         let mut sources = vec![("value.ts".to_owned(), "export const value = 1;".to_owned())];
         for level in 0..depth {
@@ -416,12 +732,111 @@ mod tests {
             sources.push((format!("b{level}.ts"), source));
         }
         let project = crate::analyze_project(sources);
-        let (path, _) = project.files.get_key_value(Path::new("a23.ts")).unwrap();
-        let mut search = Search::default();
-        project.definition_of_export(path, "value", &mut search);
-        assert_eq!(search.export_visits, 2 * depth);
-        assert!(search.active.is_empty());
-        assert!(matches!(search.finish(), DefinitionResolution::Resolved(d)
-            if d.path == Path::new("value.ts") && matches!(d.kind, DefinitionKind::Declaration(_))));
+        let mut cache = project.definitions.lock().unwrap();
+        for level in (0..depth).rev() {
+            for prefix in ["a", "b"] {
+                let result = cache.resolve(
+                    &project,
+                    key(&project, &format!("{prefix}{level}.ts"), "value"),
+                );
+                assert_eq!(result.targets.len(), 1);
+            }
+        }
+        assert_eq!(cache.expansions, 2 * depth + 2);
+        assert_eq!(cache.export_comparisons, 1);
+        assert_eq!(cache.target_insertions, 0);
+    }
+
+    #[test]
+    fn long_chains_share_completed_sets_and_never_reexpand_suffixes() {
+        let depth = 5_000;
+        let mut sources = vec![("value.ts".to_owned(), "export const value = 1;".to_owned())];
+        for i in 0..depth {
+            let target = if i == 0 {
+                "value.ts".into()
+            } else {
+                format!("m{}.ts", i - 1)
+            };
+            sources.push((
+                format!("m{i}.ts"),
+                format!("export {{ value }} from './{target}';"),
+            ));
+        }
+        let project = crate::analyze_project(sources);
+        let mut cache = project.definitions.lock().unwrap();
+        let root = cache.resolve(&project, key(&project, "m4999.ts", "value"));
+        for i in 0..depth {
+            let result = cache.resolve(&project, key(&project, &format!("m{i}.ts"), "value"));
+            assert!(
+                Arc::ptr_eq(&root, &result),
+                "alias suffix must reuse its immutable terminal set"
+            );
+        }
+        assert_eq!(cache.expansions, depth + 2);
+        assert_eq!(cache.export_comparisons, depth + 1);
+        assert_eq!(cache.target_insertions, 0);
+    }
+
+    #[test]
+    fn distinct_export_names_and_many_consumers_have_linear_indexed_work() {
+        let count = 2_000;
+        let values = (0..count)
+            .map(|i| format!("export const v{i} = {i};"))
+            .collect::<String>();
+        let consumers = (0..count).map(|i| {
+            (
+                format!("use{i}.ts"),
+                "import { v0 } from './value.ts'; v0;".to_owned(),
+            )
+        });
+        let mut sources = vec![("value.ts".to_owned(), values)];
+        sources.extend(consumers);
+        let project = crate::analyze_project(sources);
+        let used = &project.indexes[Path::new("value.ts")];
+        assert_eq!(used.used_names.len(), 1);
+        assert_eq!(project.unused_exports().len(), count - 1);
+        {
+            let mut cache = project.definitions.lock().unwrap();
+            for i in 0..count {
+                cache.resolve(&project, key(&project, "value.ts", &format!("v{i}")));
+            }
+            assert_eq!(cache.expansions, 2 * count);
+            assert_eq!(cache.export_comparisons, count);
+        }
+        for i in 0..count {
+            let source = &project.file(format!("use{i}.ts")).unwrap().source;
+            assert!(matches!(
+                project.definition_at(format!("use{i}.ts"), source.rfind("v0").unwrap() as u32),
+                Some(DefinitionResolution::Resolved(_))
+            ));
+        }
+        let cache = project.definitions.lock().unwrap();
+        assert_eq!(cache.expansions, 3 * count);
+        assert_eq!(cache.export_comparisons, count);
+    }
+
+    #[test]
+    fn component_index_and_reports_share_the_same_completed_cache() {
+        let project = crate::analyze_project([
+            ("Button.astro", "<button />"),
+            (
+                "Page.astro",
+                "---\nimport Button from './Button.astro';\n---\n<Button /><Button />",
+            ),
+        ]);
+        assert_eq!(project.component_uses_of("Button.astro").len(), 2);
+        let index = project.component_uses.get().unwrap() as *const _;
+        let expansions = project.definitions.lock().unwrap().expansions;
+        for _ in 0..8 {
+            assert_eq!(project.component_uses_of("Button.astro").len(), 2);
+            let source = &project.file("Page.astro").unwrap().source;
+            project.definition_at("Page.astro", source.rfind("Button").unwrap() as u32);
+            #[cfg(feature = "serde")]
+            {
+                project.report();
+            }
+        }
+        assert_eq!(index, project.component_uses.get().unwrap() as *const _);
+        assert_eq!(project.definitions.lock().unwrap().expansions, expansions);
     }
 }

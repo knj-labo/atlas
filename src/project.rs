@@ -1,13 +1,13 @@
 use crate::{
-    AnalysisError, ComponentUse, DeclarationId, DeclarationKind, Element, Export, ExportRole,
-    FileFacts, Import, ImportSpecifier, ModuleRequest, ModuleResolution, ModuleResolver,
+    AnalysisError, ComponentUse, DeclarationId, Element, Export, ExportRole, FileFacts, Import,
+    ImportSpecifier, ModuleDependency, ModuleRequest, ModuleResolution, ModuleResolver,
     ProjectSources, Reference, ReferenceId, RelativeResolver, Resolution, ScopeDomain,
     analyze_file,
 };
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, HashMap, HashSet},
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, Mutex, OnceLock},
 };
 
 #[path = "definition.rs"]
@@ -154,6 +154,13 @@ struct FileIndex {
     imports: Vec<usize>,
     reexports: Vec<usize>,
     bindings: HashMap<DeclarationId, usize>,
+    file_id: usize,
+    exports: HashMap<String, Vec<usize>>,
+    stars: Vec<usize>,
+    export_edges: HashMap<usize, usize>,
+    used_names: HashSet<String>,
+    used_namespace: bool,
+    used_star: bool,
 }
 
 #[derive(Debug)]
@@ -185,6 +192,9 @@ pub struct ProjectSnapshot {
     references: BTreeMap<PathBuf, Vec<ImportUse>>,
     reexports: Vec<ReExportEdge>,
     reexporters: BTreeMap<PathBuf, Vec<usize>>,
+    file_paths: Vec<PathBuf>,
+    definitions: Mutex<definition::ResolutionCache>,
+    component_uses: OnceLock<BTreeMap<usize, Vec<(usize, usize)>>>,
 }
 
 impl ProjectSnapshot {
@@ -281,24 +291,72 @@ impl ProjectSnapshot {
     /// inferred. Direct namespace imports of Astro retain their file-level use
     /// contract for a single member. Unresolved and ambiguous targets are omitted.
     pub fn component_uses_of(&self, path: impl AsRef<Path>) -> Vec<ProjectComponentUse<'_>> {
-        if !self.files.contains_key(path.as_ref()) {
+        let Some(index) = self.indexes.get(path.as_ref()) else {
             return Vec::new();
-        }
-        self.component_usage_map(&mut DefinitionResolver::new(self))
-            .remove(path.as_ref())
-            .unwrap_or_default()
+        };
+        self.component_usage_index(&mut DefinitionResolver::new(self))
+            .get(&index.file_id)
+            .into_iter()
+            .flatten()
+            .map(|&(file, component)| self.component_use(file, component))
+            .collect()
     }
 
+    fn component_usage_index<'a>(
+        &'a self,
+        resolver: &mut DefinitionResolver<'a>,
+    ) -> &'a BTreeMap<usize, Vec<(usize, usize)>> {
+        self.component_uses
+            .get_or_init(|| self.compute_component_usage_map(resolver))
+    }
+
+    fn component_use(&self, file: usize, component: usize) -> ProjectComponentUse<'_> {
+        let path = self.file_paths[file].as_path();
+        let facts = self.files[path]
+            .analysis
+            .as_ref()
+            .as_ref()
+            .expect("component facts");
+        let component = &facts.components[component];
+        ProjectComponentUse {
+            path,
+            component,
+            element: &facts.elements[component.element.0],
+            import: self
+                .project_reference(path, &facts.references[component.reference.id.0])
+                .import
+                .expect("imported component"),
+        }
+    }
+
+    #[cfg(feature = "serde")]
     pub(crate) fn component_usage_map<'a>(
         &'a self,
         resolver: &mut DefinitionResolver<'a>,
     ) -> BTreeMap<&'a Path, Vec<ProjectComponentUse<'a>>> {
-        let mut uses: BTreeMap<&Path, Vec<ProjectComponentUse<'_>>> = BTreeMap::new();
+        self.component_usage_index(resolver)
+            .iter()
+            .map(|(target, uses)| {
+                (
+                    self.file_paths[*target].as_path(),
+                    uses.iter()
+                        .map(|&(file, component)| self.component_use(file, component))
+                        .collect(),
+                )
+            })
+            .collect()
+    }
+
+    fn compute_component_usage_map<'a>(
+        &'a self,
+        resolver: &mut DefinitionResolver<'a>,
+    ) -> BTreeMap<usize, Vec<(usize, usize)>> {
+        let mut uses: BTreeMap<usize, Vec<(usize, usize)>> = BTreeMap::new();
         for (path, file) in &self.files {
             let Ok(facts) = file.analysis.as_ref() else {
                 continue;
             };
-            for component in &facts.components {
+            for (component_index, component) in facts.components.iter().enumerate() {
                 let reference =
                     self.project_reference(path, &facts.references[component.reference.id.0]);
                 let Some(import) = reference.import else {
@@ -360,20 +418,13 @@ impl ProjectSnapshot {
                 } else if component.name != reference.reference.name {
                     continue;
                 }
-                uses.entry(target.path)
+                uses.entry(self.indexes[target.path].file_id)
                     .or_default()
-                    .push(ProjectComponentUse {
-                        path,
-                        component,
-                        element: &facts.elements[component.element.0],
-                        import,
-                    });
+                    .push((self.indexes[path].file_id, component_index));
             }
         }
         for uses in uses.values_mut() {
-            uses.sort_by(|a, b| {
-                (a.path, a.component.span.start).cmp(&(b.path, b.component.span.start))
-            });
+            uses.sort_unstable();
         }
         uses
     }
@@ -394,29 +445,17 @@ impl ProjectSnapshot {
             let Ok(facts) = file.analysis.as_ref() else {
                 continue;
             };
-            let imports = self.incoming_imports(path);
-            let reexports = self.incoming_reexports(path);
-            let names = |specifier: &ImportSpecifier, name: &str| match specifier {
-                ImportSpecifier::Namespace => true,
-                ImportSpecifier::Named(imported) => imported == name,
-                ImportSpecifier::Default => name == "default",
-            };
-            let used = |name: &str| {
-                imports
-                    .iter()
-                    .flat_map(|i| &i.import.bindings)
-                    .any(|binding| names(&binding.target.specifier, name))
-                    || reexports.iter().any(|r| match &r.export.imported {
-                        Some(imported) => names(imported, name),
-                        None => name != "default",
-                    })
-            };
+            let index = &self.indexes[path];
             unused.extend(
                 facts
                     .exports
                     .iter()
                     .filter(|export| {
-                        export.role == ExportRole::Other && !export.is_star() && !used(&export.name)
+                        export.role == ExportRole::Other
+                            && !export.is_star()
+                            && !index.used_namespace
+                            && (!index.used_star || export.name == "default")
+                            && !index.used_names.contains(&export.name)
                     })
                     .map(|export| ProjectExport { path, export }),
             );
@@ -505,16 +544,12 @@ impl ProjectSnapshot {
             references: BTreeMap::new(),
             reexports: Vec::new(),
             reexporters: BTreeMap::new(),
+            file_paths: sources.keys().cloned().collect(),
+            definitions: Mutex::new(definition::ResolutionCache::default()),
+            component_uses: OnceLock::new(),
         };
-        let resolve = |importer: &Path, import: &Import, domain| {
-            let resolution = resolver.resolve(
-                ModuleRequest {
-                    importer,
-                    import,
-                    domain,
-                },
-                &context,
-            );
+        let resolve = |request: ModuleRequest<'_>| {
+            let resolution = resolver.resolve(request, &context);
             match resolution {
                 ModuleResolution::Resolved(target) if !context.contains(&target) => {
                     ModuleResolution::Unresolved
@@ -522,17 +557,25 @@ impl ProjectSnapshot {
                 resolution => resolution,
             }
         };
-        for (path, file) in &snapshot.files {
+        for (file_id, (path, file)) in snapshot.files.iter().enumerate() {
             let Ok(facts) = file.analysis.as_ref() else {
                 continue;
             };
-            let mut index = FileIndex::default();
-            let bindings: HashMap<_, _> = facts
-                .declarations
-                .iter()
-                .filter(|binding| binding.kind == DeclarationKind::Import)
-                .map(|binding| ((binding.span.start, binding.span.end), binding.id))
-                .collect();
+            let mut index = FileIndex {
+                file_id,
+                ..FileIndex::default()
+            };
+            for (i, export) in facts.exports.iter().enumerate() {
+                if export.is_star() {
+                    index.stars.push(i);
+                } else {
+                    index
+                        .exports
+                        .entry(export.name.clone())
+                        .or_default()
+                        .push(i);
+                }
+            }
             for (import_index, import) in facts.imports.iter().enumerate() {
                 // Browser scripts are analyzed independently with root scopes;
                 // their imports must not inherit the server template domain.
@@ -546,7 +589,14 @@ impl ProjectSnapshot {
                             && import.span.end <= scope.span.end
                     })
                     .map_or(ScopeDomain::Server, |scope| scope.domain);
-                let resolution = resolve(path, import, domain);
+                let resolution = resolve(ModuleRequest {
+                    importer: path,
+                    domain,
+                    source: &import.source,
+                    span: import.span.clone(),
+                    source_span: import.source_span.clone(),
+                    dependency: ModuleDependency::Import(import),
+                });
                 let dependency = snapshot.dependencies.len();
                 if let ModuleResolution::Resolved(target) = &resolution {
                     snapshot
@@ -563,9 +613,7 @@ impl ProjectSnapshot {
                 });
                 index.imports.push(dependency);
                 for binding in &import.bindings {
-                    if let Some(&id) = bindings.get(&(binding.span.start, binding.span.end)) {
-                        index.bindings.insert(id, dependency);
-                    }
+                    index.bindings.insert(binding.declaration, dependency);
                 }
             }
             for reference in &facts.references {
@@ -588,20 +636,23 @@ impl ProjectSnapshot {
                 let Some(source) = &export.source else {
                     continue;
                 };
-                // Re-exports use their actual module/frontmatter domain.
-                let request = Import {
-                    span: export.span.clone(),
-                    source: source.clone(),
-                    source_span: export.span.clone(),
-                    bindings: Vec::new(),
-                };
                 let domain = facts
                     .scopes
                     .iter()
                     .find(|s| s.parent.is_none())
                     .expect("module root scope")
                     .domain;
-                let resolution = resolve(path, &request, domain);
+                let resolution = resolve(ModuleRequest {
+                    importer: path,
+                    domain,
+                    source,
+                    span: export.declaration_span.clone(),
+                    source_span: export
+                        .source_span
+                        .clone()
+                        .expect("re-export module literal"),
+                    dependency: ModuleDependency::Export(export),
+                });
                 let edge = snapshot.reexports.len();
                 if let ModuleResolution::Resolved(target) = &resolution {
                     snapshot
@@ -616,8 +667,49 @@ impl ProjectSnapshot {
                     resolution,
                 });
                 index.reexports.push(edge);
+                index.export_edges.insert(export_index, edge);
             }
             snapshot.indexes.insert(path.clone(), index);
+        }
+        // Build incoming use sets once; unused_exports does one membership test
+        // per export, irrespective of the number of consumers.
+        let mut uses = Vec::new();
+        for dependency in &snapshot.dependencies {
+            if let ModuleResolution::Resolved(target) = &dependency.resolution {
+                let facts = snapshot.files[&dependency.path]
+                    .analysis
+                    .as_ref()
+                    .as_ref()
+                    .expect("indexed facts");
+                for binding in &facts.imports[dependency.index].bindings {
+                    uses.push((target.clone(), Some(binding.target.specifier.clone())));
+                }
+            }
+        }
+        for edge in &snapshot.reexports {
+            if let ModuleResolution::Resolved(target) = &edge.resolution {
+                let facts = snapshot.files[&edge.path]
+                    .analysis
+                    .as_ref()
+                    .as_ref()
+                    .expect("indexed facts");
+                uses.push((target.clone(), facts.exports[edge.index].imported.clone()));
+            }
+        }
+        for (target, specifier) in uses {
+            let Some(index) = snapshot.indexes.get_mut(&target) else {
+                continue;
+            };
+            match specifier {
+                Some(ImportSpecifier::Namespace) => index.used_namespace = true,
+                Some(ImportSpecifier::Named(name)) => {
+                    index.used_names.insert(name);
+                }
+                Some(ImportSpecifier::Default) => {
+                    index.used_names.insert("default".into());
+                }
+                None => index.used_star = true,
+            }
         }
         snapshot
     }

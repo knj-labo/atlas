@@ -1,6 +1,7 @@
 # ADR 0006: ESM analysis, cross-file definitions and TOON reports
 
-Status: Accepted
+Status: Accepted; declaration identity and traversal refinements are superseded by
+[ADR 0007](0007-symbols-and-resolution-index.md)
 
 Date: 2026-10-19
 

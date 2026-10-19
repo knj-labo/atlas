@@ -206,6 +206,7 @@ pub(crate) fn to_diagnostics(errors: &[OxcDiagnostic], phase: DiagnosticPhase) -
         .collect()
 }
 fn canonicalize(facts: &mut FileFacts) {
+    canonicalize_declarations(facts);
     facts.imports.sort_by_key(|i| i.span.start);
     facts.exports.sort_by_key(|e| (e.span.start, e.span.end));
     facts.components.sort_by_key(|c| c.span.start);
@@ -255,6 +256,92 @@ fn canonicalize(facts: &mut FileFacts) {
     facts
         .diagnostics
         .sort_by_key(|d| d.labels.first().map_or(0, |l| l.span.start));
+}
+
+fn canonicalize_declarations(facts: &mut FileFacts) {
+    if facts.symbols.len() == facts.declarations.len() {
+        return;
+    }
+    let primary: std::collections::HashSet<_> =
+        facts.symbols.iter().map(|s| s.declarations[0]).collect();
+    // Keep the representative ID order from every server/browser projection,
+    // then allocate the newly exposed redeclarations at the end of the file.
+    facts
+        .declarations
+        .sort_by_key(|b| (!primary.contains(&b.id), b.id));
+    let ids: HashMap<_, _> = facts
+        .declarations
+        .iter()
+        .enumerate()
+        .map(|(i, b)| (b.id, DeclarationId(i)))
+        .collect();
+    for binding in &mut facts.declarations {
+        binding.id = ids[&binding.id];
+    }
+    for symbol in &mut facts.symbols {
+        for id in &mut symbol.declarations {
+            *id = ids[id];
+        }
+    }
+    for import in &mut facts.imports {
+        for binding in &mut import.bindings {
+            binding.declaration = ids[&binding.declaration];
+        }
+    }
+    for export in &mut facts.exports {
+        export.local = export.local.map(|id| ids[&id]);
+        if let Some(ExportLocal::Declaration(id)) = &mut export.target {
+            *id = ids[id];
+        }
+    }
+    fn resolution(value: &mut Resolution, ids: &HashMap<DeclarationId, DeclarationId>) {
+        match value {
+            Resolution::Resolved(binding) => binding.id = ids[&binding.id],
+            Resolution::RuntimeDependent { candidates, .. } => {
+                for id in candidates {
+                    *id = ids[id];
+                }
+            }
+            _ => {}
+        }
+    }
+    for reference in &mut facts.references {
+        resolution(&mut reference.resolution, &ids);
+    }
+    for component in &mut facts.components {
+        resolution(&mut component.reference.resolution, &ids);
+    }
+    for script in &mut facts.scripts {
+        for id in &mut script.injected {
+            *id = ids[id];
+        }
+        for reference in &mut script.references {
+            resolution(&mut reference.resolution, &ids);
+        }
+    }
+    fn remap_value(value: &mut crate::TransferValue, ids: &HashMap<DeclarationId, DeclarationId>) {
+        for origin in &mut value.origins {
+            origin.declaration = ids[&origin.declaration];
+        }
+        match &mut value.kind {
+            crate::TransferValueKind::Array(values) => {
+                for item in values {
+                    remap_value(item, ids);
+                }
+            }
+            crate::TransferValueKind::Object(properties) => {
+                for (_, item) in properties {
+                    remap_value(item, ids);
+                }
+            }
+            _ => {}
+        }
+    }
+    for boundary in &mut facts.boundaries {
+        for input in &mut boundary.inputs {
+            remap_value(&mut input.value, &ids);
+        }
+    }
 }
 fn remap_resolution(resolution: &mut Resolution, ids: &HashMap<ReferenceId, ReferenceId>) {
     if let Resolution::Resolved(b) = resolution

@@ -456,7 +456,7 @@ fn borrowed_resolvers_run_per_analysis_and_are_not_retained_by_queries() {
             sources: &ProjectSources<'_>,
         ) -> ModuleResolution {
             self.calls.fetch_add(1, Ordering::Relaxed);
-            if request.import.source == "@button" {
+            if request.source == "@button" {
                 resolved(self.target)
             } else {
                 RelativeResolver.resolve(request, sources)

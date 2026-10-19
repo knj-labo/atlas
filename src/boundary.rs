@@ -489,8 +489,10 @@ impl Values<'_, '_, '_> {
             .get()
             .and_then(|r| self.semantic.scoping().get_reference(r).symbol_id())
             .expect("resolved identifier");
-        let AstKind::VariableDeclarator(declarator) =
-            self.semantic.symbol_declaration(symbol).kind()
+        let AstKind::VariableDeclarator(declarator) = self
+            .semantic
+            .nodes()
+            .kind(self.projection.declaration_nodes[&binding.id])
         else {
             return self.unknown(span, U::UntrackedBinding);
         };
