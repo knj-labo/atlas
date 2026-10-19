@@ -29,3 +29,20 @@ Supported extensions are `.astro`, `.js`, `.mjs`, `.jsx`, `.ts`, `.mts`, `.tsx`,
 The directory example skips symlinks and generated/dependency directories.
 See the [specification](docs/specification.md), [testing](docs/testing.md), and
 [ESM/definition/report ADR](docs/adr/0006-esm-definitions-and-toon.md).
+
+Merged declarations are available through a symbol; definition queries select a
+representative for the reference's meaning (including type-position `typeof`):
+
+```rust
+let facts = atlas::analyze_file("types.ts",
+    "interface Item { a: string } interface Item { b: number }").unwrap();
+let binding = facts.declarations_named("Item")[0];
+let symbol = &facts.symbols[binding.symbol.0];
+assert_eq!(symbol.declarations.len(), 2);
+assert_eq!(symbol.declaration(&facts, atlas::Meaning::Type).unwrap().id, binding.id);
+```
+
+Custom resolvers use `request.source`, `span` and `source_span`, and inspect the
+original fact through `request.dependency` (`ModuleDependency::Import` or
+`ModuleDependency::Export`). The request ranges cover the complete statement and
+quoted module literal respectively. See [ADR 0007](docs/adr/0007-symbols-and-resolution-index.md).

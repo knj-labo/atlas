@@ -81,8 +81,46 @@ pub fn validate(source: &str, result: &Result<FileFacts, AnalysisError>) {
         for (i, b) in f.declarations.iter().enumerate() {
             assert_eq!(b.id.0, i, "declaration id");
             assert!(b.scope.0 < f.scopes.len(), "binding scope");
+            assert!(
+                f.symbols[b.symbol.0].declarations.contains(&b.id),
+                "binding symbol"
+            );
             if let Some(o) = &b.injection {
                 origin(f, o);
+            }
+        }
+        for (i, symbol) in f.symbols.iter().enumerate() {
+            assert_eq!(symbol.id.0, i, "symbol id");
+            assert!(!symbol.declarations.is_empty(), "symbol has declarations");
+            let mut seen = std::collections::HashSet::new();
+            for id in &symbol.declarations {
+                assert!(seen.insert(id), "duplicate physical declaration");
+                assert_eq!(f.declarations[id.0].symbol, symbol.id, "declaration symbol");
+            }
+        }
+        for import in &f.imports {
+            for binding in &import.bindings {
+                let declaration = &f.declarations[binding.declaration.0];
+                assert_eq!(declaration.span, binding.span, "physical import span");
+                assert_eq!(
+                    declaration.import.as_ref(),
+                    Some(&binding.target),
+                    "physical import target"
+                );
+            }
+        }
+        for export in &f.exports {
+            span(source, &export.declaration_span);
+            assert!(
+                export.declaration_span.start <= export.span.start
+                    && export.span.end <= export.declaration_span.end
+            );
+            if let Some(source_span) = &export.source_span {
+                span(source, source_span);
+                assert!(
+                    export.declaration_span.start <= source_span.start
+                        && source_span.end <= export.declaration_span.end
+                );
             }
         }
         for (i, s) in f.scopes.iter().enumerate() {

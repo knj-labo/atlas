@@ -50,7 +50,7 @@ Compiler evidence and Node grammar checks remain separate. The pinned compiler r
 
 The two new failures were reproduced before their fixes: a backslash followed by an actual U+2028/U+2029 produced `--to<separator>ne` instead of `--tone`; NEL/BOM keys resolved to declarations with the wrong injection origins. The `css_line_continuations` and `injected_ecmascript_whitespace` tests now check names, target IDs, key/value origins, UTF-8 spans, and raw source recovery. The three registered fixtures have accepted snapshots and independent compiler extraction/helper evidence.
 
-`css_parser_boundaries` checks charset/import rules, nested selectors and conditions, duplicate declarations, `!important`, and custom-property block values containing semicolons and braces. `css_decoded_names_preserve_original_source` distinguishes literal Unicode escapes from line continuations and checks HTML entities, JavaScript hex/braced Unicode escapes, and CSS escapes. All 83 pre-refactor snapshot bodies are unchanged. The 16 AST semantic fixtures use their file names as IDs and matching snapshot filenames. Current default and serde-only runs cover 156 and 167 Rust tests respectively, plus 86 unchanged Astro snapshots and six default-feature doctests; compiler comparisons cover 86 cases, plus four registry rejection tests.
+`css_parser_boundaries` checks charset/import rules, nested selectors and conditions, duplicate declarations, `!important`, and custom-property block values containing semicolons and braces. `css_decoded_names_preserve_original_source` distinguishes literal Unicode escapes from line continuations and checks HTML entities, JavaScript hex/braced Unicode escapes, and CSS escapes. All 83 pre-refactor snapshot bodies are unchanged. The 16 AST semantic fixtures use their file names as IDs and matching snapshot filenames. Current default and serde-only runs cover 174 and 186 Rust tests respectively, plus 86 unchanged Astro snapshots and six default-feature doctests; compiler comparisons cover 86 cases, plus four registry rejection tests.
 
 ## Incremental verification
 
@@ -81,10 +81,9 @@ dependency edges. Compiler/transfer comparisons retain their existing pins.
 [definition_graph_regressions.rs](../tests/definition_graph_regressions.rs) covers
 unresolved local/default aliases, shared cycles with multiple query roots and
 report-batch reuse, blocking failures and layered diamonds. Internal definition
-tests count export expansions on a 49-module graph, and report tests count one
-finished lookup for 16,000 uses while retaining every source occurrence and
-file-local binding identity. These assert work counts rather than wall-clock
-limits. [component_definitions.rs](../tests/component_definitions.rs) checks
+tests count expanded graph nodes and explicit export-record comparisons across
+snapshot queries; report tests retain all 16,000 reference occurrences.
+[component_definitions.rs](../tests/component_definitions.rs) checks
 external default/local/expression re-exports, explicit priority, ambiguity,
 namespace paths, direct Astro namespace compatibility, shadowing, duplicates and
 report attribution. Declaration-file tests distinguish implicit/explicit export
@@ -92,7 +91,7 @@ contexts, global scripts, ordinary TS, imported aliases, nesting and source orde
 
 The optional `incremental` feature has six unit tests in [incremental.rs](../src/incremental.rs) and four public-API tests in [tests/incremental.rs](../tests/incremental.rs). Unit tests install a test-only Salsa `WillExecute` event callback. They count query executions to verify lazy registration, memo reuse, identical-text no-ops, isolation between files, latest-text analysis after multiple pending updates, independent inputs for equal text at different paths, and caching/recovery for parser, semantic, and CSS syntax errors. Pointer identity checks additionally verify shared `Arc` results; execution events establish that the query did not rerun.
 
-Public-API tests compare all 86 registered fixtures with standalone `analyze`, check repeated shared results, retain results across updates and database destruction, and verify independent databases, unknown paths, and lexical `PathBuf` keys that do not require files to exist. Fixture parity covers both successful facts and syntax errors without new snapshots or compiler baselines. Including the file-local and project query suites, current incremental-only and all-feature runs cover 172 and 183 Rust tests respectively, the existing 86 Astro snapshots, the 86 fixture parity comparisons, and eight all-feature doctests.
+Public-API tests compare all 86 registered fixtures with standalone `analyze`, check repeated shared results, retain results across updates and database destruction, and verify independent databases, unknown paths, and lexical `PathBuf` keys that do not require files to exist. Fixture parity covers both successful facts and syntax errors without new snapshots or compiler baselines. Including the file-local and project query suites, current incremental-only and all-feature runs cover 191 and 203 Rust tests respectively, the existing 86 Astro snapshots, the 86 fixture parity comparisons, and eight all-feature doctests.
 
 CI tests all four feature combinations: default, serde only, incremental only, and both features. It checks that the default normal dependency tree contains no Salsa packages and runs doctests with default and all features. Rust 1.91.1 remains pinned; Salsa 0.28.5 enables only `macros` and `inventory`.
 
@@ -103,6 +102,38 @@ Implementation references:
 - [Oxc whitespace predicates](https://github.com/jp-knj/oxc-atlas/blob/8ef5b6a720bab87987dbc33f569af9d784c06850/crates/oxc_syntax/src/identifier.rs) and line-terminator predicates implement ECMAScript trimming for [Astro 7.0.6 toIdent](https://github.com/withastro/astro/blob/dbe9144e55ccbe4cccac53abef60d8a41509178f/packages/astro/src/runtime/server/render/util.ts). Script grammar validation still uses Oxc.
 - [compiler-rs scanner](https://github.com/withastro/compiler-rs/blob/main/crates/astro_codegen/src/scanner.rs) and style printer are eligibility references; the pinned 0.3.0 native package supplies reproducible compiler evidence. Script/style parent eligibility is shared within atlas.
 - [cssparser 0.37.0 rule APIs](https://docs.rs/cssparser/0.37.0/cssparser/struct.RuleBodyParser.html) delimit rules and declarations through trait callbacks. The collector uses cssparser tokens directly with source spans. Lightning CSS 1.0.0-alpha.72 continues syntax validation and typed animation parsing; atlas preserves conservative names in Unparsed values. A leading charset rule is collected before StyleSheetParser, which otherwise discards it.
+
+## Symbols, original dependencies and completed resolution caches
+
+[symbols.rs](../tests/symbols.rs) checks both orders of a type-only import plus a
+same-name const, Type/Value/ValueAsType selection, import-only report attribution,
+interface/const transfer origins, interface merges, overload implementations and
+signature-only fallbacks, class/namespace/enum meanings, direct versus list export
+meaning, explicit-name priority, type-only paths and browser scripts. Resolver
+checks verify original fact pointer identity, default/named/namespace/side-effect
+and named/star/namespace re-export forms, type modifiers, domains and complete
+Unicode/CRLF source/literal byte ranges. Additional checks cover lexical failure
+tie-breaking, SCC entry/query order, eight concurrent query threads, declaration
+IDs across server/browser domains, updates/removal/re-registration and retained
+snapshots. New metadata is omitted from Serde; schema 1 JSON and default TOON
+reports compare equal after strict decoding. Existing fixture baselines stay
+unchanged.
+
+Work-count tests in [definition.rs](../src/definition.rs) assert:
+
+| Scenario | Bound checked |
+| --- | --- |
+| 24 levels of shared star diamonds, every root queried | 50 graph expansions, one explicit-export comparison, no dependency candidate-set unions |
+| 5,000 re-export links, every suffix queried | 5,002 expansions, 5,001 explicit-export comparisons, one shared Arc candidate set |
+| 2,000 distinct export names and 2,000 consumers of one name | 6,000 total expansions, 2,000 explicit-export comparisons; one used-name entry and 1,999 unused exports |
+| Repeated component, definition and report queries | Component index identity and graph-expansion count stay unchanged |
+
+These bounds concern saved graph work, not elapsed time. On the development
+machine, `cargo test --locked --release --all-features --lib
+project::definition::tests` ran all four cases in 0.07 s (53.64 s including release
+compilation). This is supplementary evidence with no CI time threshold. The
+pinned compiler comparison passed all 86 cases, and the pinned transfer runtime
+comparison passed all 36 cases.
 
 ## Reproduction and review
 

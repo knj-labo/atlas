@@ -63,7 +63,8 @@ pub use report::{
     ExportReport, FileReport, ImportReport, ProjectReport, REPORT_SCHEMA_VERSION, ReferenceReport,
 };
 pub use resolver::{
-    ModuleRequest, ModuleResolution, ModuleResolver, ProjectSources, RelativeResolver,
+    ModuleDependency, ModuleRequest, ModuleResolution, ModuleResolver, ProjectSources,
+    RelativeResolver,
 };
 pub use transfer::*;
 

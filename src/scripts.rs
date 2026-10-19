@@ -146,6 +146,8 @@ pub(crate) fn analyze_scripts(
         script.injected = projection
             .symbols
             .values()
+            .flat_map(|id| &facts.symbols[id.0].declarations)
+            .map(|id| &facts.declarations[id.0])
             .filter(|b| b.kind == DeclarationKind::Injected)
             .map(|b| b.id)
             .collect();

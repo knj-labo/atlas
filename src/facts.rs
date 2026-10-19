@@ -11,6 +11,7 @@ macro_rules! id_type {
 }
 id_type!(
     DeclarationId,
+    SymbolId,
     ScopeId,
     ReferenceId,
     ElementId,
@@ -33,6 +34,9 @@ pub struct FileFacts {
     pub components: Vec<ComponentUse>,
     pub elements: Vec<Element>,
     pub declarations: Vec<Binding>,
+    /// Lexical symbols and all of their physical declarations (Rust API only).
+    #[cfg_attr(any(feature = "serde", test), serde(skip))]
+    pub symbols: Vec<Symbol>,
     pub exports: Vec<Export>,
     pub scopes: Vec<Scope>,
     pub references: Vec<Reference>,
@@ -64,6 +68,8 @@ pub struct Import {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(any(feature = "serde", test), derive(serde::Serialize))]
 pub struct ImportBinding {
+    #[cfg_attr(any(feature = "serde", test), serde(skip))]
+    pub declaration: DeclarationId,
     pub name: String,
     pub span: Range<u32>,
     pub target: ImportTarget,
@@ -221,6 +227,9 @@ pub struct Reference {
     pub span: Range<u32>,
     pub scope: ScopeId,
     pub kind: ReferenceKind,
+    /// Preserves type-query and namespace context after Oxc normalizes flags.
+    #[cfg_attr(any(feature = "serde", test), serde(skip))]
+    pub meaning: Meaning,
     pub resolution: Resolution,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -254,12 +263,58 @@ pub enum Builtin {
 #[cfg_attr(any(feature = "serde", test), derive(serde::Serialize))]
 pub struct Binding {
     pub id: DeclarationId,
+    #[cfg_attr(any(feature = "serde", test), serde(skip))]
+    pub symbol: SymbolId,
     pub scope: ScopeId,
     pub name: String,
     pub span: Range<u32>,
     pub kind: DeclarationKind,
     pub import: Option<ImportTarget>,
     pub injection: Option<InjectionOrigin>,
+    #[cfg_attr(any(feature = "serde", test), serde(skip))]
+    pub meanings: Vec<Meaning>,
+    #[cfg_attr(any(feature = "serde", test), serde(skip))]
+    pub function_implementation: bool,
+}
+
+/// The namespace in which a query uses a symbol. `ValueAsType` is `typeof x`
+/// in a type position, and can follow an explicitly type-only alias.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum Meaning {
+    Value,
+    Type,
+    Namespace,
+    ValueAsType,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Symbol {
+    pub id: SymbolId,
+    pub declarations: Vec<DeclarationId>,
+}
+
+impl Symbol {
+    /// Select a representative for this meaning. Function implementations take
+    /// precedence over signatures; other matches use original source order.
+    pub fn declaration<'a>(&self, facts: &'a FileFacts, meaning: Meaning) -> Option<&'a Binding> {
+        self.declarations
+            .iter()
+            .map(|id| &facts.declarations[id.0])
+            .filter(|b| b.meanings.contains(&meaning))
+            .min_by_key(|b| {
+                (
+                    matches!(meaning, Meaning::Value | Meaning::ValueAsType) && b.import.is_some(),
+                    if b.kind == DeclarationKind::Function {
+                        usize::from(!b.function_implementation)
+                    } else {
+                        2
+                    },
+                    b.span.start,
+                    b.span.end,
+                    b.id,
+                )
+            })
+    }
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(any(feature = "serde", test), derive(serde::Serialize))]
@@ -294,6 +349,23 @@ pub struct Export {
     /// is excluded from the existing serialized facts/report contract.
     #[cfg_attr(any(feature = "serde", test), serde(skip))]
     pub default_expression: bool,
+    /// Whole export statement and original module literal, including quotes.
+    #[cfg_attr(any(feature = "serde", test), serde(skip))]
+    pub declaration_span: Range<u32>,
+    #[cfg_attr(any(feature = "serde", test), serde(skip))]
+    pub source_span: Option<Range<u32>>,
+    #[cfg_attr(any(feature = "serde", test), serde(skip))]
+    pub target: Option<ExportLocal>,
+    #[cfg_attr(any(feature = "serde", test), serde(skip))]
+    pub meanings: Vec<Meaning>,
+}
+
+/// Declaration exports retain the physical declaration; export lists expose a
+/// symbol, whose representative depends on the importing reference's meaning.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExportLocal {
+    Declaration(DeclarationId),
+    Symbol(SymbolId),
 }
 impl Export {
     pub(crate) fn is_star(&self) -> bool {

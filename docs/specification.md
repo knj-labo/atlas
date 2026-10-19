@@ -22,7 +22,7 @@ All rows marked Supported below passed. Rust tests are in [spec.rs](../tests/spe
 | Frontmatter, empty files, no frontmatter | Server scopes and owned declarations/references; empty files accepted | Supported; JS/TS grammar delegated to pinned Oxc | `all_references_scopes_types_and_declarations_are_owned`; phase-1 empty-file test; `empty`, `types-await` fixtures |
 | Default, aliased named, namespace, side-effect and type imports | Import source and form, local binding, type-only marker; shadowing resolves to different IDs | Supported; imported files not opened | `file_facts::imports_include_aliases_types_namespace_and_side_effects`; phase-1 import test |
 | Variables, destructuring, functions, parameters, classes and TS declarations | Scope parents, declaration identities, Value/Type/ValueAndType references | Supported; no TS type inference | `all_references_scopes_types_and_declarations_are_owned`; `receivers_type_scopes_and_module_expression_attributes_are_explicit` |
-| Frontmatter exports | Top-level exports including `export * as` and `export *` (named `*`): name, span, local declaration, re-export source and imported specifier, type-only marker from Oxc symbol meaning; role Astro (value `getStaticPaths`, `prerender`, `partial`), Props (type `Props`) or Other; the implicit default component export is not listed | Supported; client script exports excluded; re-exports resolved at project level | `tests/exports.rs` |
+| Frontmatter exports | Top-level exports including `export * as` and `export *` (named `*`): name, span, local declaration, re-export source and imported specifier, type-only marker from physical declaration meaning or explicit alias modifiers; role Astro (value `getStaticPaths`, `prerender`, `partial`), Props (type `Props`) or Other; the implicit default component export is not listed | Supported; client script exports excluded; re-exports resolved at project level | `tests/exports.rs` |
 | Component names, members and closing tags | One component use per element; member root resolves to declaration; opening and closing spans retained | Supported; property values not evaluated | phase-1 member/import/shadowing tests; `members`, `components` fixtures |
 | HTML, custom elements, fragments, attributes, spreads, duplicates | Every element and attribute retained with spans, values, literals, parent links | Supported; attribute spread contents are Dynamic | `every_template_element_attributes_spreads_fragments_and_slots_are_kept`; `attributes`, `html` fixtures |
 | Expressions, arrays, objects, IIFEs, async/await | References retained in nested expressions; nested scripts discovered independently | Supported; branch conditions not evaluated | `script_discovery_covers_array_object_and_iife_return_expressions`; `expressions`, `types-await` fixtures |
@@ -145,7 +145,7 @@ Paths follow `PathBuf` equality/hashing without canonicalization or filesystem I
 | `definition_at(path, offset)` | A saved reference's declaration/export/file target, ambiguous candidates, or an unresolved reason; `None` without a recorded reference. |
 | `revision()` | `None` for uncached analysis; `Some(ProjectRevision)` with database-local source/resolver counters for cached analysis. They are not identities across databases. |
 
-Results borrow canonical file records and are ordered by path, then original-source span. Shadowed locals, unresolved identifiers, builtins, and runtime-dependent candidate bindings do not become imported-file uses. An unknown path produces no matches. Resolving a named import's module alone does not validate that export; `definition_at` separately follows saved import/re-export records. Resolvers receive re-exports as binding-free imports in their actual Module or Server domain. Dynamic imports, script `src`, and CSS dependencies are outside this stage.
+Results borrow canonical file records and are ordered by path, then original-source span. Shadowed locals, unresolved identifiers, builtins, and runtime-dependent candidate bindings do not become imported-file uses. An unknown path produces no matches. Resolving a named import's module alone does not validate that export; `definition_at` separately follows saved import/re-export records. Resolvers receive the original `Import` or `Export` through `ModuleRequest.dependency`, in its actual Module or Server domain. The request also exposes the decoded `source`, full statement `span`, and quoted module-literal `source_span`; no synthetic import is constructed. Dynamic imports, script `src`, and CSS dependencies are outside this stage.
 
 The default `RelativeResolver` matches explicit `./` and `../` specifiers using lexical dot/parent normalization and collapsing repeated separators over supplied virtual paths. It returns the original supplied key; multiple keys normalizing to the same target produce `Ambiguous`. Missing paths are `Unresolved`. Bare specifiers, absolute paths, URLs, backslashes, directory forms ending in `/`, `/.`, or `/..`, and query/hash suffixes are `Unsupported`; extensions and directory indexes are not inferred. There is no filesystem, symlink, or case-folding lookup. `ModuleResolver` implementations can use the original import, execution domain, and immutable `ProjectSources`, including source contents, to supply other policies. A resolver's `Resolved` result for an absent exact key is converted to `Unresolved`. Custom `Ambiguous` candidates are retained as reported for inspection; they are not validated or indexed as resolved imports.
 
@@ -161,16 +161,56 @@ canonical `Binding` records. Imported references follow named/default imports,
 aliases, imported-name exports, named re-exports and `export *` chains. Explicit
 exports take precedence, stars exclude default, and repeated routes to one
 declaration are merged. Multiple distinct targets are `Ambiguous` in path/span
-order. Active `(path, export name)` pairs detect cycles; a star cycle can still
-reach an explicit definition, while an otherwise cyclic lookup returns `Cycle`.
-A failed or unopened star branch prevents an assumed unique definition.
+order. A failed or unopened star branch prevents an assumed unique definition.
 
-Traversal visits each reachable `(path, export name)` once per root and
-accumulates targets/failures globally, with a separate active set for cycle
-detection. Completed visits contribute nothing rather than inventing missing
-exports. Batch report generation shares only finished binding/export root
-results, never partially explored cycle results. A local export specifier with
-no declaration is `UnresolvedReference`; it is not an anonymous export target.
+Each file owns `Symbol` records indexed by `SymbolId`. A symbol lists all physical
+`DeclarationId`s, including Oxc redeclarations. Existing representative IDs across
+server/browser projections precede appended declarations. Each `Binding` retains
+its symbol, original name span, kind, supported `Meaning`s and whether a function
+has an implementation. `Reference.meaning` preserves `Value`, `Type`, `Namespace`
+and `ValueAsType`; AST context recovers `typeof` and qualified-name meaning after
+Oxc normalizes its reference flags. `Symbol::declaration(facts, meaning)` selects a
+representative: real value declarations precede aliases in Value/ValueAsType,
+functions prefer an implementation and otherwise the first signature, and other
+matches use source order. Interface merges and overloads produce one definition;
+all physical declarations remain available through the symbol. Transfer constant
+collection reads the selected declaration's AST initializer, independently of
+Oxc's representative node. Browser scripts use the same mapping.
+
+Direct exports retain their physical declaration and its meanings. Export lists
+expose a symbol and its available meanings. A local type-only export can expose a
+value for later `typeof` queries even when Oxc leaves its Type reference unresolved.
+`Export.target`, `meanings`,
+`declaration_span` and `source_span`, `FileFacts.symbols`, `Binding` symbol metadata,
+`Reference.meaning`, and `ImportBinding.declaration` are Rust-only additions. The
+legacy `Export.span`, report keys and serialized shapes remain unchanged. Import
+indexes use `ImportBinding.declaration`, never a representative span match.
+Explicit export names take priority before meaning selection: an explicit name
+without the requested meaning returns `UnresolvedReference` and cannot fall back
+to stars. Type-only import/export paths reject runtime Value while allowing
+ValueAsType to reach a value declaration. `export declare function` retains its
+physical value meaning even when Oxc classifies the export modifier as type-only.
+Runtime lookups skip type-only star entries when value-eligible stars are present;
+a solely type-only star surface returns `UnresolvedReference`.
+
+Snapshot construction indexes export names, star entries, export-to-edge IDs and
+used names with namespace/star flags. `unused_exports` tests these sets once per
+export, without scanning every incoming consumer. A snapshot-local `Mutex` guards
+completed results keyed by file ID, export name or SymbolId, and Meaning. A query
+expands only reachable nodes absent from that cache. Iterative Tarjan identifies
+SCCs without recursive traversal; the condensation DAG is evaluated dependency
+first. Each SCC shares a completed immutable candidate set in an `Arc`; simple
+alias chains reuse the same set. Sets deduplicate target IDs, and no intermediate
+SCC state is shared. Results become borrowed records after releasing the lock.
+
+Result precedence is: multiple distinct candidates, blocking failure, one
+candidate, cycle, missing export. Missing-export and cycle branches do not block a
+single confirmed candidate; every other failure does. Within a failure category,
+the representative is the lexicographically smallest tuple of failing graph-node
+path, node name and unresolved-reason variant name, then reason payload to break
+a tie. An SCC contributes the smallest participating path/name as its cycle
+reason. This rule is independent of edge order, query entry point, cache state or
+thread scheduling. Local unresolved export aliases return `UnresolvedReference`.
 
 `DefinitionKind` contains a borrowed declaration, anonymous/expression export,
 Astro component file, or module file for a namespace root. File targets cover
@@ -189,8 +229,10 @@ static namespace export paths in component names, including nested module
 namespaces, without inferring members of ordinary values. Namespace root
 references still resolve to `Module` in `definition_at`. Direct namespace imports
 of Astro retain their legacy single-member file-use candidates. Report generation
-groups component uses once for the batch and wraps stored references directly,
-without searching each source offset again.
+uses a snapshot-local component-use index computed once. Definition, component
+and report queries share the same completed-resolution cache and wrap canonical
+references without repeated source-offset searches. Each new snapshot owns a new
+cache; retained snapshots keep their sources, IDs and completed results.
 
 ## Project report and directory example
 

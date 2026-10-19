@@ -123,7 +123,7 @@ impl ModuleResolver for AliasResolver {
         assert!(sources.contains(request.importer));
         assert!(sources.source(request.importer).unwrap().contains("import"));
         assert!(sources.paths().any(|path| path == request.importer));
-        if request.import.source == "@button" {
+        if request.source == "@button" {
             // Deliberately return a configured key even if it has not been registered.
             ModuleResolution::Resolved(self.target.clone())
         } else {

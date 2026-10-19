@@ -1,6 +1,7 @@
-use crate::{Import, ScopeDomain};
+use crate::{Export, Import, ScopeDomain};
 use std::{
     collections::BTreeMap,
+    ops::Range,
     path::{Component, Path, PathBuf},
     sync::Arc,
 };
@@ -20,12 +21,24 @@ pub enum ModuleResolution {
     Ambiguous(Vec<PathBuf>),
 }
 
-/// Original import and execution domain supplied to a module resolver.
-#[derive(Debug, Clone, Copy)]
+/// Original import/re-export, source ranges and execution domain for a resolver.
+#[derive(Debug, Clone)]
 pub struct ModuleRequest<'a> {
     pub importer: &'a Path,
-    pub import: &'a Import,
     pub domain: ScopeDomain,
+    pub source: &'a str,
+    /// Full import or export statement in the original UTF-8 source.
+    pub span: Range<u32>,
+    /// Original module string literal, including quotes.
+    pub source_span: Range<u32>,
+    pub dependency: ModuleDependency<'a>,
+}
+
+/// The original source fact, including specifiers and type-only modifiers.
+#[derive(Debug, Clone, Copy)]
+pub enum ModuleDependency<'a> {
+    Import(&'a Import),
+    Export(&'a Export),
 }
 
 /// Immutable source buffers belonging to the project being resolved.
@@ -82,7 +95,7 @@ impl<'a> ProjectSources<'a> {
 /// struct WithAlias;
 /// impl ModuleResolver for WithAlias {
 ///     fn resolve(&self, request: ModuleRequest<'_>, sources: &ProjectSources<'_>) -> ModuleResolution {
-///         if request.import.source == "@ui/button" {
+///         if request.source == "@ui/button" {
 ///             ModuleResolution::Resolved("src/Button.astro".into())
 ///         } else {
 ///             RelativeResolver.resolve(request, sources)
@@ -118,7 +131,7 @@ impl ModuleResolver for RelativeResolver {
         request: ModuleRequest<'_>,
         sources: &ProjectSources<'_>,
     ) -> ModuleResolution {
-        let specifier = request.import.source.as_str();
+        let specifier = request.source;
         if !(specifier.starts_with("./") || specifier.starts_with("../"))
             || specifier.contains(['?', '#', '\\', '\0'])
             || specifier.ends_with('/')
